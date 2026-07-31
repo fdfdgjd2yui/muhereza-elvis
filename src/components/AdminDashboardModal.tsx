@@ -1,27 +1,28 @@
-import React, { useState } from 'react';
-import { StudentResult } from '../types';
+import React, { useState, useEffect } from 'react';
+import { StudentResult, EventItem } from '../types';
 import { 
   parseSpreadsheetData, 
   syncStudentsToFirestore, 
   deleteStudentFromFirestore, 
-  clearAllStudentsFromFirestore 
+  clearAllStudentsFromFirestore,
+  getEventsFromFirestore,
+  addEventToFirestore,
+  deleteEventFromFirestore
 } from '../lib/firebase';
 import { 
   Lock, 
-  Key, 
-  RefreshCw, 
-  Database, 
-  CheckCircle2, 
-  AlertCircle, 
   X, 
   UploadCloud, 
-  Table, 
+  Trash2, 
+  Calendar, 
+  CheckCircle2, 
+  AlertCircle,
   Eye,
   EyeOff,
-  Trash2,
-  BookOpen,
-  GraduationCap,
-  Search
+  Plus,
+  RefreshCw,
+  Search,
+  BookOpen
 } from 'lucide-react';
 
 interface AdminDashboardModalProps {
@@ -37,67 +38,62 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
   studentResults,
   onUpdateResults
 }) => {
-  // Password state
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState('');
 
-  // Active Tab
-  const [activeTab, setActiveTab] = useState<'paste' | 'uce' | 'uace'>('paste');
+  // Active Tab: 'paste' | 'events' | 'students'
+  const [activeTab, setActiveTab] = useState<'paste' | 'events' | 'students'>('paste');
 
-  // Search filter for directories
-  const [uceSearchQuery, setUceSearchQuery] = useState('');
-  const [uaceSearchQuery, setUaceSearchQuery] = useState('');
+  // Search query for students table
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Excel/CSV paste state
   const [pastedData, setPastedData] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Toast / Status state
+  // Status message
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Events Manager Form State (No Images!)
+  const [eventItems, setEventItems] = useState<EventItem[]>([]);
+  const [eventTitle, setEventTitle] = useState('');
+  const [eventDate, setEventDate] = useState('');
+  const [eventDescription, setEventDescription] = useState('');
+
+  useEffect(() => {
+    if (isOpen && isAuthenticated) {
+      loadEventsData();
+    }
+  }, [isOpen, isAuthenticated]);
+
+  const loadEventsData = async () => {
+    const e = await getEventsFromFirestore();
+    setEventItems(e);
+  };
 
   if (!isOpen) return null;
 
-  // Split results into UCE and UACE datasets
-  const uceResults = studentResults.filter((s) => s.level === 'UCE');
-  const uaceResults = studentResults.filter((s) => s.level === 'UACE');
-
-  // Search filtering
-  const filteredUce = uceResults.filter(
-    (s) =>
-      s.studentName.toLowerCase().includes(uceSearchQuery.toLowerCase()) ||
-      s.indexNumber.toLowerCase().includes(uceSearchQuery.toLowerCase())
-  );
-
-  const filteredUace = uaceResults.filter(
-    (s) =>
-      s.studentName.toLowerCase().includes(uaceSearchQuery.toLowerCase()) ||
-      s.indexNumber.toLowerCase().includes(uaceSearchQuery.toLowerCase())
-  );
-
-  // Handle Login Password Check
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (passwordInput === 'nexusadmin2026') {
       setIsAuthenticated(true);
       setAuthError('');
     } else {
-      setAuthError('Incorrect Admin Password. Default is: nexusadmin2026');
+      setAuthError('Incorrect Admin Password. (Default: nexusadmin2026)');
     }
   };
 
   const showToast = (type: 'success' | 'error', text: string) => {
     setToastMessage({ type, text });
-    setTimeout(() => setToastMessage(null), 6000);
+    setTimeout(() => setToastMessage(null), 5000);
   };
 
-  /**
-   * Main Frontend Processing and Batch Sync to Firestore Function
-   */
+  // Sync Pasted Student Data to Firestore
   const handleProcessAndSync = async () => {
     if (!pastedData.trim()) {
-      showToast('error', 'Please paste Excel or CSV data into the text area before syncing.');
+      showToast('error', 'Please paste student rows into the text area before uploading.');
       return;
     }
 
@@ -105,16 +101,14 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
     setToastMessage(null);
 
     try {
-      // Parse pasted data using JavaScript frontend logic
       const parsedStudents = parseSpreadsheetData(pastedData);
       
       if (parsedStudents.length === 0) {
-        showToast('error', 'Could not extract valid student records. Check your data and try again.');
+        showToast('error', 'Could not parse student records. Please ensure text contains valid rows.');
         setIsProcessing(false);
         return;
       }
 
-      // Merge into active state using exact Index Number (Document ID) to eliminate duplicates
       const mergedMap = new Map<string, StudentResult>();
       studentResults.forEach(s => mergedMap.set(s.indexNumber.trim().toUpperCase(), s));
       parsedStudents.forEach(s => mergedMap.set(s.indexNumber.trim().toUpperCase(), s));
@@ -122,404 +116,375 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
       const updatedList = Array.from(mergedMap.values());
       onUpdateResults(updatedList);
 
-      // Execute Firestore batch upload (db.batch())
       const syncResult = await syncStudentsToFirestore(parsedStudents);
 
       showToast(
         'success',
-        `✓ Successfully processed & uploaded ${syncResult.count} student record(s) to Firestore! Document IDs set to UNEB Index Numbers.`
+        `Successfully uploaded and synced ${syncResult.count} student record(s)!`
       );
       setPastedData('');
     } catch (err: any) {
-      showToast('error', `Sync failed: ${err?.message || 'Unexpected parsing error'}`);
+      showToast('error', `Sync failed: ${err?.message || 'Error parsing data'}`);
     } finally {
       setIsProcessing(false);
     }
   };
 
-  /**
-   * Admin action: Delete single student record from Firestore and local state
-   */
-  const handleDeleteSingleStudent = async (indexNumber: string) => {
-    if (!window.confirm(`Are you sure you want to delete candidate ${indexNumber}?`)) {
+  // Add Event (Simple text form, no image upload)
+  const handleAddEvent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!eventTitle.trim() || !eventDate.trim() || !eventDescription.trim()) {
+      showToast('error', 'Please fill in Title, Date, and Description.');
       return;
     }
+
+    const newEvent: EventItem = {
+      id: 'evt_' + Date.now(),
+      title: eventTitle.trim(),
+      date: eventDate.trim(),
+      description: eventDescription.trim(),
+      time: '09:00 AM',
+      location: 'Main Campus',
+      category: 'General',
+      image: ''
+    };
+
+    await addEventToFirestore(newEvent);
+    window.dispatchEvent(new Event('nexus_events_updated'));
+    await loadEventsData();
+
+    setEventTitle('');
+    setEventDate('');
+    setEventDescription('');
+    showToast('success', 'Event published successfully.');
+  };
+
+  // Delete Event
+  const handleDeleteEvent = async (id: string) => {
+    if (!window.confirm('Delete this event?')) return;
+    await deleteEventFromFirestore(id);
+    window.dispatchEvent(new Event('nexus_events_updated'));
+    await loadEventsData();
+    showToast('success', 'Event deleted.');
+  };
+
+  // Delete Single Student
+  const handleDeleteStudent = async (indexNumber: string) => {
+    if (!window.confirm(`Delete record for Index Number ${indexNumber}?`)) return;
     try {
       await deleteStudentFromFirestore(indexNumber);
       const targetId = indexNumber.trim().toUpperCase();
-      const targetNorm = targetId.replace(/[\s/]/g, '');
-      const updated = studentResults.filter(
-        (s) => s.indexNumber.trim().toUpperCase() !== targetId &&
-               s.indexNumber.replace(/[\s/]/g, '').toUpperCase() !== targetNorm
-      );
+      const updated = studentResults.filter(s => s.indexNumber.trim().toUpperCase() !== targetId);
       onUpdateResults(updated);
-      showToast('success', `✓ Successfully deleted candidate ${indexNumber}.`);
+      showToast('success', `Deleted record ${indexNumber}.`);
     } catch (err: any) {
-      showToast('error', `Deletion failed: ${err?.message || 'Unexpected error'}`);
+      showToast('error', `Deletion failed: ${err?.message || 'Error'}`);
     }
   };
 
-  /**
-   * Admin action: Clear specific level (UCE or UACE) from Firestore and local state
-   */
-  const handleClearLevelStudents = async (level: 'UCE' | 'UACE') => {
-    const levelRecords = level === 'UCE' ? uceResults : uaceResults;
-    if (levelRecords.length === 0) {
-      showToast('error', `No ${level} student records to delete.`);
-      return;
-    }
-    if (
-      !window.confirm(
-        `⚠️ Are you sure you want to PERMANENTLY DELETE ALL ${levelRecords.length} ${level} student records? This action cannot be reversed.`
-      )
-    ) {
-      return;
-    }
+  // Clear All Students
+  const handleClearAllStudents = async () => {
+    if (!window.confirm('Are you sure you want to clear ALL student records?')) return;
     try {
-      const ids = levelRecords.map((s) => s.indexNumber);
+      const ids = studentResults.map(s => s.indexNumber);
       await clearAllStudentsFromFirestore(ids);
-      const updated = studentResults.filter((s) => s.level !== level);
-      onUpdateResults(updated);
-      showToast('success', `✓ Successfully cleared all ${ids.length} ${level} student records.`);
+      onUpdateResults([]);
+      showToast('success', 'Cleared all student records.');
     } catch (err: any) {
-      showToast('error', `Failed to clear ${level} dataset: ${err?.message || 'Unexpected error'}`);
+      showToast('error', `Failed to clear students: ${err?.message}`);
     }
   };
+
+  const filteredStudents = studentResults.filter(s =>
+    s.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    s.indexNumber.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in overflow-y-auto">
-      <div className="glass-card w-full max-w-4xl rounded-3xl border border-sky-400/30 shadow-2xl relative bg-[#07111F] my-8 overflow-hidden text-white">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in overflow-y-auto">
+      <div className="w-full max-w-4xl bg-white border border-slate-300 text-slate-900 rounded shadow-xl overflow-hidden my-8">
         
         {/* Header */}
-        <div className="p-6 border-b border-white/10 flex items-center justify-between bg-gradient-to-r from-[#10253C] to-[#07111F]">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-sky-500/20 border border-sky-400/30 text-sky-400">
-              <Database className="w-6 h-6" />
-            </div>
-            <div>
-              <h2 className="text-xl font-extrabold text-white heading-font flex items-center gap-2">
-                Nexus Academic Registry Admin Portal
-                {isAuthenticated && (
-                  <span className="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full font-bold">
-                    AUTHENTICATED
-                  </span>
-                )}
-              </h2>
-              <p className="text-xs text-gray-300">Data Management & Student Directory Control</p>
-            </div>
+        <div className="bg-[#0B1A30] text-white px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <Lock className="w-5 h-5 text-amber-400" />
+            <h2 className="text-base font-bold">Nexus Academy Admin Portal</h2>
           </div>
-
           <button
             onClick={onClose}
-            className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white transition-colors"
+            className="p-1 rounded text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Password Authentication Gate */}
+        {/* Modal Body */}
         {!isAuthenticated ? (
-          <div className="p-8 max-w-md mx-auto text-center space-y-6">
-            <div className="w-16 h-16 rounded-2xl bg-sky-500/15 border border-sky-400/30 flex items-center justify-center mx-auto text-sky-400">
-              <Lock className="w-8 h-8" />
-            </div>
+          <div className="p-8 max-w-md mx-auto text-center space-y-4">
+            <h3 className="text-lg font-bold text-[#0B1A30]">Admin Password Required</h3>
+            <p className="text-xs text-slate-600">Enter the administrator password to manage UNEB records & events.</p>
 
-            <div>
-              <h3 className="text-xl font-bold text-white mb-1">Admin Password Required</h3>
-              <p className="text-xs text-gray-400">
-                Please enter the security password to manage student UNEB results & sync settings.
-              </p>
-            </div>
-
-            <form onSubmit={handlePasswordSubmit} className="space-y-4">
-              <div className="relative">
-                <Key className="w-4 h-4 text-sky-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Enter admin password (e.g. nexusadmin2026)..."
-                  value={passwordInput}
-                  onChange={(e) => setPasswordInput(e.target.value)}
-                  className="w-full pl-10 pr-10 py-3 rounded-xl glass-input text-sm"
-                  autoFocus
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-
-              {authError && (
-                <div className="flex items-center gap-2 p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  <span>{authError}</span>
+            <form onSubmit={handlePasswordSubmit} className="space-y-3 text-left">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Password</label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={passwordInput}
+                    onChange={(e) => setPasswordInput(e.target.value)}
+                    placeholder="Enter admin password"
+                    className="w-full px-3 py-2 rounded border border-slate-300 text-sm focus:outline-none focus:border-[#0B1A30]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
-              )}
+                {authError && <p className="text-xs text-red-600 mt-1">{authError}</p>}
+              </div>
 
               <button
                 type="submit"
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-sky-400 to-blue-500 text-slate-950 font-bold text-sm shadow-lg hover:scale-[1.02] transition-all"
+                className="w-full py-2.5 rounded bg-[#0B1A30] text-white font-bold text-xs hover:bg-slate-800 transition-colors"
               >
-                Access Admin Dashboard
+                Log In
               </button>
             </form>
-
-            <div className="p-3 rounded-xl bg-white/5 border border-white/10 text-[11px] text-gray-400">
-              💡 Demo Security Credentials: Password is <strong className="text-sky-300">nexusadmin2026</strong>
-            </div>
           </div>
         ) : (
-          /* Authenticated Admin Dashboard Controls */
-          <div className="p-6 space-y-6">
+          <div className="p-6 space-y-4">
             
-            {/* Toast Notification Banner */}
+            {/* Status Toast Banner */}
             {toastMessage && (
-              <div
-                className={`p-4 rounded-2xl border flex items-center gap-3 animate-in fade-in ${
-                  toastMessage.type === 'success'
-                    ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-200'
-                    : 'bg-rose-500/15 border-rose-500/40 text-rose-200'
-                }`}
-              >
-                {toastMessage.type === 'success' ? (
-                  <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-                ) : (
-                  <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
-                )}
-                <p className="text-xs font-semibold">{toastMessage.text}</p>
+              <div className={`p-3 rounded border text-xs font-semibold flex items-center justify-between ${
+                toastMessage.type === 'success' 
+                  ? 'bg-emerald-50 border-emerald-300 text-emerald-800' 
+                  : 'bg-red-50 border-red-300 text-red-800'
+              }`}>
+                <div className="flex items-center gap-2">
+                  {toastMessage.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+                  <span>{toastMessage.text}</span>
+                </div>
+                <button onClick={() => setToastMessage(null)} className="text-slate-500 hover:text-slate-800">
+                  <X className="w-4 h-4" />
+                </button>
               </div>
             )}
 
-            {/* Admin Tabs */}
-            <div className="flex items-center gap-2 border-b border-white/10 pb-3 overflow-x-auto">
-              {[
-                { id: 'paste', label: '1. Paste Excel/CSV Data', icon: UploadCloud },
-                { id: 'uce', label: `2. UCE Directory (${uceResults.length})`, icon: BookOpen },
-                { id: 'uace', label: `3. UACE Directory (${uaceResults.length})`, icon: GraduationCap }
-              ].map((tab) => {
-                const Icon = tab.icon;
-                const isActive = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id as any)}
-                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all border shrink-0 ${
-                      isActive
-                        ? 'bg-sky-400 text-slate-950 border-sky-300 shadow-md'
-                        : 'glass-card text-gray-300 border-white/10 hover:border-sky-400/30'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    <span>{tab.label}</span>
-                  </button>
-                );
-              })}
+            {/* Tabs */}
+            <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
+              <button
+                onClick={() => setActiveTab('paste')}
+                className={`px-3 py-1.5 rounded text-xs font-bold transition-colors ${
+                  activeTab === 'paste'
+                    ? 'bg-[#0B1A30] text-white'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                Sync Student Data
+              </button>
+
+              <button
+                onClick={() => setActiveTab('events')}
+                className={`px-3 py-1.5 rounded text-xs font-bold transition-colors ${
+                  activeTab === 'events'
+                    ? 'bg-[#0B1A30] text-white'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                Manage Events ({eventItems.length})
+              </button>
+
+              <button
+                onClick={() => setActiveTab('students')}
+                className={`px-3 py-1.5 rounded text-xs font-bold transition-colors ${
+                  activeTab === 'students'
+                    ? 'bg-[#0B1A30] text-white'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                Student Records ({studentResults.length})
+              </button>
             </div>
 
-            {/* TAB 1: Frontend Excel/CSV Data Parsing & Firestore Sync */}
+            {/* TAB 1: PASTE & SYNC STUDENT DATA */}
             {activeTab === 'paste' && (
-              <div className="space-y-4">
-                <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-1">
-                  <h3 className="text-sm font-bold text-sky-300 flex items-center gap-2">
-                    <UploadCloud className="w-4 h-4" />
-                    Direct Frontend Excel / CSV Data Processing
-                  </h3>
-                  <p className="text-xs text-gray-300">
-                    Copy rows directly from Excel or CSV and paste below. The system automatically extracts candidate details and categorizes UCE and UACE candidates.
-                  </p>
+              <div className="space-y-3">
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded text-xs text-slate-700">
+                  <p className="font-bold text-[#0B1A30] mb-1">Paste Excel or CSV Student Rows</p>
+                  <p>Input columns: Index Number, Name, Level (UCE/UACE), Year, Stream, Aggregates/Points, Division.</p>
+                  <p className="text-slate-500 mt-0.5">Saves directly to candidate records database.</p>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="block text-xs font-bold text-sky-300 tracking-wide uppercase">
-                    Paste Excel/CSV rows here (Tab or Comma Separated)
-                  </label>
-                  <textarea
-                    rows={9}
-                    value={pastedData}
-                    onChange={(e) => setPastedData(e.target.value)}
-                    placeholder={`IndexNumber\tStudentName\tLevel\tExamYear\tGender\tStream\tAggregates\tDivision\tHeadteacherRemark\nU0001/001\tKASOZI MARK\tUCE\t2025\tM\tSenior 4 Science Stream A\t8 Aggregates\tDivision 1\tOutstanding performance.`}
-                    className="w-full p-4 rounded-2xl glass-input text-xs font-mono border border-white/10 focus:border-sky-400 focus:ring-1 focus:ring-sky-400 leading-relaxed"
-                  />
-                </div>
+                <textarea
+                  rows={8}
+                  value={pastedData}
+                  onChange={(e) => setPastedData(e.target.value)}
+                  placeholder={`U0001/501\tKATO JOHN\tUCE\t2025\tM\tSTREAM A\t10 AGGREGATES\tDIVISION 1\nU0001/502\tNAKATO MARY\tUACE\t2025\tF\tPCM/ICT\t18 POINTS\tCLASS 1`}
+                  className="w-full p-3 rounded border border-slate-300 font-mono text-xs text-slate-800 focus:outline-none focus:border-[#0B1A30]"
+                />
 
-                <div className="flex items-center justify-between pt-2">
+                <div className="flex justify-end">
                   <button
                     onClick={handleProcessAndSync}
                     disabled={isProcessing}
-                    className="flex items-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-sky-400 to-blue-500 text-slate-950 font-extrabold text-sm shadow-xl hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 transition-all cursor-pointer"
+                    className="px-5 py-2 rounded bg-[#0B1A30] text-white font-bold text-xs hover:bg-slate-800 transition-colors flex items-center gap-2 disabled:opacity-50"
                   >
-                    <RefreshCw className={`w-4 h-4 ${isProcessing ? 'animate-spin' : ''}`} />
-                    <span>{isProcessing ? 'Processing & Writing Batch to Firestore...' : 'Process and Sync to Firestore'}</span>
+                    {isProcessing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
+                    <span>Upload & Sync Records</span>
                   </button>
-
-                  <span className="text-[11px] text-gray-400 font-mono">
-                    Document Path: <span className="text-sky-300">/students/[indexNumber]</span>
-                  </span>
                 </div>
               </div>
             )}
 
-            {/* TAB 2: UCE Student Directory */}
-            {activeTab === 'uce' && (
-              <div className="space-y-4">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                  <div>
-                    <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                      <BookOpen className="w-4 h-4 text-sky-400" />
-                      UCE Candidate Directory (Senior 4 / O-Level)
-                      <span className="text-xs bg-sky-500/20 text-sky-300 border border-sky-500/30 px-2 py-0.5 rounded-full font-mono">
-                        {filteredUce.length} of {uceResults.length} Records
-                      </span>
-                    </h3>
-                    <span className="text-xs text-gray-400">Uganda Certificate of Education Candidates</span>
+            {/* TAB 2: SIMPLE TEXT FORM TO ADD EVENTS (NO IMAGES) */}
+            {activeTab === 'events' && (
+              <div className="space-y-5">
+                <form onSubmit={handleAddEvent} className="p-4 rounded border border-slate-300 bg-slate-50 space-y-3">
+                  <h3 className="text-xs font-bold text-[#0B1A30] uppercase tracking-wider flex items-center gap-1.5">
+                    <Plus className="w-4 h-4" /> Add New School Event
+                  </h3>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">Event Title</label>
+                      <input
+                        type="text"
+                        value={eventTitle}
+                        onChange={(e) => setEventTitle(e.target.value)}
+                        placeholder="e.g. End of Term Parent Teacher Conference"
+                        className="w-full px-3 py-2 rounded border border-slate-300 text-xs text-slate-800 focus:outline-none focus:border-[#0B1A30]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">Date</label>
+                      <input
+                        type="text"
+                        value={eventDate}
+                        onChange={(e) => setEventDate(e.target.value)}
+                        placeholder="e.g. August 15, 2026"
+                        className="w-full px-3 py-2 rounded border border-slate-300 text-xs text-slate-800 focus:outline-none focus:border-[#0B1A30]"
+                      />
+                    </div>
                   </div>
 
-                  {uceResults.length > 0 && (
-                    <button
-                      onClick={() => handleClearLevelStudents('UCE')}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-300 font-bold text-xs transition-all"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      <span>Delete All UCE Data</span>
-                    </button>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Description</label>
+                    <textarea
+                      rows={2}
+                      value={eventDescription}
+                      onChange={(e) => setEventDescription(e.target.value)}
+                      placeholder="Brief details about the event..."
+                      className="w-full p-2.5 rounded border border-slate-300 text-xs text-slate-800 focus:outline-none focus:border-[#0B1A30]"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="px-4 py-2 rounded bg-[#0B1A30] text-white font-bold text-xs hover:bg-slate-800 transition-colors flex items-center gap-1.5"
+                  >
+                    <Calendar className="w-4 h-4" /> Save Event
+                  </button>
+                </form>
+
+                {/* Published Events List */}
+                <div className="space-y-2">
+                  <h4 className="text-xs font-bold text-slate-700 uppercase">Existing Events ({eventItems.length})</h4>
+                  {eventItems.length === 0 ? (
+                    <p className="text-xs text-slate-500 italic">No events currently posted.</p>
+                  ) : (
+                    <ul className="divide-y divide-slate-200 border border-slate-200 rounded">
+                      {eventItems.map((evt) => (
+                        <li key={evt.id} className="p-3 flex items-start justify-between gap-4 hover:bg-slate-50">
+                          <div>
+                            <p className="text-xs font-bold text-[#0B1A30]">{evt.title}</p>
+                            <p className="text-[11px] text-slate-500 font-semibold">{evt.date}</p>
+                            <p className="text-xs text-slate-700 mt-1">{evt.description}</p>
+                          </div>
+                          <button
+                            onClick={() => handleDeleteEvent(evt.id)}
+                            className="p-1.5 rounded bg-red-50 text-red-600 hover:bg-red-100 transition-colors shrink-0"
+                            title="Delete Event"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
                   )}
                 </div>
+              </div>
+            )}
 
-                {/* UCE Search Bar */}
-                <div className="relative">
-                  <Search className="w-4 h-4 text-sky-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    value={uceSearchQuery}
-                    onChange={(e) => setUceSearchQuery(e.target.value)}
-                    placeholder="Search UCE candidate by name or index number..."
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl glass-input text-xs border-white/10"
-                  />
+            {/* TAB 3: STUDENT RECORDS MANAGEMENT */}
+            {activeTab === 'students' && (
+              <div className="space-y-3">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                  <div className="relative w-full sm:w-64">
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="Search candidate or index..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full pl-8 pr-3 py-1.5 rounded border border-slate-300 text-xs text-slate-800 focus:outline-none focus:border-[#0B1A30]"
+                    />
+                  </div>
+
+                  <button
+                    onClick={handleClearAllStudents}
+                    className="px-3 py-1.5 rounded bg-red-50 text-red-700 border border-red-200 text-xs font-bold hover:bg-red-100 transition-colors flex items-center gap-1.5"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Clear All Student Records</span>
+                  </button>
                 </div>
 
-                {filteredUce.length === 0 ? (
-                  <div className="p-8 text-center glass-card rounded-2xl border border-white/10 text-gray-400 text-xs">
-                    {uceSearchQuery ? 'No UCE candidates match your search.' : 'No UCE student records in directory.'}
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto rounded-2xl border border-white/10 max-h-80 overflow-y-auto">
-                    <table className="w-full text-left text-xs">
-                      <thead className="sticky top-0 bg-[#10253C] border-b border-white/10 text-sky-200">
-                        <tr className="uppercase text-[10px]">
-                          <th className="py-2.5 px-3">Document ID (Index #)</th>
-                          <th className="py-2.5 px-3">Candidate Name</th>
-                          <th className="py-2.5 px-3">Stream</th>
-                          <th className="py-2.5 px-3">Aggregates & Division</th>
-                          <th className="py-2.5 px-3">Year</th>
-                          <th className="py-2.5 px-3 text-right">Actions</th>
+                <div className="overflow-x-auto border border-slate-200 rounded max-h-72">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                      <tr>
+                        <th className="p-2.5">Index No</th>
+                        <th className="p-2.5">Student Name</th>
+                        <th className="p-2.5">Level</th>
+                        <th className="p-2.5">Division / Class</th>
+                        <th className="p-2.5">Aggs / Pts</th>
+                        <th className="p-2.5 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200">
+                      {filteredStudents.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="p-4 text-center text-slate-500 italic">
+                            No student records found.
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody className="divide-y divide-white/10 text-gray-200">
-                        {filteredUce.map((st) => (
-                          <tr key={st.indexNumber} className="hover:bg-white/5">
-                            <td className="py-2.5 px-3 font-mono font-bold text-sky-300">{st.indexNumber}</td>
-                            <td className="py-2.5 px-3 font-bold text-white">{st.studentName}</td>
-                            <td className="py-2.5 px-3 text-gray-300">{st.combinationOrStream}</td>
-                            <td className="py-2.5 px-3 text-emerald-300 font-semibold">{st.aggregatesOrPoints} ({st.divisionOrClass})</td>
-                            <td className="py-2.5 px-3">{st.examYear}</td>
-                            <td className="py-2.5 px-3 text-right">
+                      ) : (
+                        filteredStudents.map((s) => (
+                          <tr key={s.indexNumber} className="hover:bg-slate-50">
+                            <td className="p-2.5 font-mono font-bold text-[#0B1A30]">{s.indexNumber}</td>
+                            <td className="p-2.5 font-semibold text-slate-800">{s.studentName}</td>
+                            <td className="p-2.5 text-slate-600">{s.level}</td>
+                            <td className="p-2.5 text-slate-600">{s.divisionOrClass}</td>
+                            <td className="p-2.5 text-slate-600">{s.aggregatesOrPoints}</td>
+                            <td className="p-2.5 text-right">
                               <button
-                                onClick={() => handleDeleteSingleStudent(st.indexNumber)}
-                                title="Delete Record"
-                                className="p-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/30 border border-rose-500/30 text-rose-300 transition-colors"
+                                onClick={() => handleDeleteStudent(s.indexNumber)}
+                                className="p-1 rounded bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             </td>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* TAB 3: UACE Student Directory */}
-            {activeTab === 'uace' && (
-              <div className="space-y-4">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                  <div>
-                    <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                      <GraduationCap className="w-4 h-4 text-sky-400" />
-                      UACE Candidate Directory (Senior 6 / A-Level)
-                      <span className="text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full font-mono">
-                        {filteredUace.length} of {uaceResults.length} Records
-                      </span>
-                    </h3>
-                    <span className="text-xs text-gray-400">Uganda Advanced Certificate of Education Candidates</span>
-                  </div>
-
-                  {uaceResults.length > 0 && (
-                    <button
-                      onClick={() => handleClearLevelStudents('UACE')}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-300 font-bold text-xs transition-all"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      <span>Delete All UACE Data</span>
-                    </button>
-                  )}
+                        ))
+                      )}
+                    </tbody>
+                  </table>
                 </div>
-
-                {/* UACE Search Bar */}
-                <div className="relative">
-                  <Search className="w-4 h-4 text-sky-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    value={uaceSearchQuery}
-                    onChange={(e) => setUaceSearchQuery(e.target.value)}
-                    placeholder="Search UACE candidate by name or index number..."
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl glass-input text-xs border-white/10"
-                  />
-                </div>
-
-                {filteredUace.length === 0 ? (
-                  <div className="p-8 text-center glass-card rounded-2xl border border-white/10 text-gray-400 text-xs">
-                    {uaceSearchQuery ? 'No UACE candidates match your search.' : 'No UACE student records in directory.'}
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto rounded-2xl border border-white/10 max-h-80 overflow-y-auto">
-                    <table className="w-full text-left text-xs">
-                      <thead className="sticky top-0 bg-[#10253C] border-b border-white/10 text-sky-200">
-                        <tr className="uppercase text-[10px]">
-                          <th className="py-2.5 px-3">Document ID (Index #)</th>
-                          <th className="py-2.5 px-3">Candidate Name</th>
-                          <th className="py-2.5 px-3">Combination</th>
-                          <th className="py-2.5 px-3">Points & Class</th>
-                          <th className="py-2.5 px-3">Year</th>
-                          <th className="py-2.5 px-3 text-right">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-white/10 text-gray-200">
-                        {filteredUace.map((st) => (
-                          <tr key={st.indexNumber} className="hover:bg-white/5">
-                            <td className="py-2.5 px-3 font-mono font-bold text-sky-300">{st.indexNumber}</td>
-                            <td className="py-2.5 px-3 font-bold text-white">{st.studentName}</td>
-                            <td className="py-2.5 px-3 text-gray-300">{st.combinationOrStream}</td>
-                            <td className="py-2.5 px-3 text-emerald-300 font-semibold">{st.aggregatesOrPoints} ({st.divisionOrClass})</td>
-                            <td className="py-2.5 px-3">{st.examYear}</td>
-                            <td className="py-2.5 px-3 text-right">
-                              <button
-                                onClick={() => handleDeleteSingleStudent(st.indexNumber)}
-                                title="Delete Record"
-                                className="p-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/30 border border-rose-500/30 text-rose-300 transition-colors"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
               </div>
             )}
 
@@ -530,4 +495,3 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
     </div>
   );
 };
-

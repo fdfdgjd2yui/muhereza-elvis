@@ -121,17 +121,26 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           {/* Right Column: Hero Student Portrait & Floating Glass Cards */}
           <div className="lg:col-span-5 relative flex justify-center items-center">
             
-            {/* Center Image Container with Glowing Light Blue Glass Border */}
-            <div className="relative w-full max-w-md aspect-[4/5] rounded-3xl overflow-hidden glass-card p-3 border border-sky-400/30 shadow-2xl blue-border-glow">
-              <img
-                src="https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=1000&auto=format&fit=crop"
-                alt="Nexus Scholar"
-                referrerPolicy="no-referrer"
-                className="w-full h-full object-cover rounded-2xl"
-              />
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-t from-[#07111F] via-transparent to-transparent opacity-80" />
-              
-              <div className="absolute bottom-6 left-6 right-6 p-4 rounded-2xl glass-card border border-white/20">
+            {/* Center Container with Glowing Light Blue Glass Border (No External Photos) */}
+            <div className="relative w-full max-w-md aspect-[4/5] rounded-3xl overflow-hidden glass-card p-6 border border-sky-400/30 shadow-2xl blue-border-glow flex flex-col justify-between bg-gradient-to-br from-[#10253C] via-[#0B1A2F] to-[#040A14]">
+              <div className="flex justify-between items-center">
+                <span className="px-3 py-1 rounded-full bg-sky-500/20 border border-sky-400/30 text-[10px] font-bold text-sky-300 uppercase tracking-widest">
+                  Nexus Academy
+                </span>
+                <GraduationCap className="w-8 h-8 text-sky-400" />
+              </div>
+
+              <div className="my-auto text-center space-y-4 py-8">
+                <div className="w-20 h-20 rounded-2xl bg-sky-500/20 border border-sky-400/40 flex items-center justify-center mx-auto text-sky-400">
+                  <GraduationCap className="w-10 h-10" />
+                </div>
+                <h3 className="text-2xl font-bold text-white heading-font">Nexus Excellence</h3>
+                <p className="text-xs text-sky-200 max-w-xs mx-auto leading-relaxed">
+                  Fostering academic rigor, STEM exploration, and character leadership.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl glass-card border border-white/10 bg-black/40">
                 <p className="text-xs font-semibold text-sky-300 uppercase tracking-wider">Nexus Scholar Focus</p>
                 <p className="text-sm font-bold text-white mt-0.5">Empowered for University & Beyond</p>
               </div>

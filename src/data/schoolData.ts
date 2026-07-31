@@ -15,31 +15,31 @@ import {
 export const HERO_SLIDES = [
   {
     id: '1',
-    image: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=1920&auto=format&fit=crop',
+    image: '',
     title: "Building Tomorrow's Leaders",
-    subtitle: 'Ultra-Premium Education for Future Innovators & Visionaries',
-    badge: '★ #1 International Academy Ranking'
+    subtitle: 'Quality Education for Future Innovators and Visionaries',
+    badge: 'Top Ranked International Academy'
   },
   {
     id: '2',
-    image: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?q=80&w=1920&auto=format&fit=crop',
+    image: '',
     title: 'STEM & AI Innovation Hub',
-    subtitle: 'Robotics, Digital Science Labs & Next-Gen Digital Literacy',
-    badge: '🚀 Advanced STEM Facilities'
+    subtitle: 'Robotics, Science Labs and Digital Literacy',
+    badge: 'Advanced STEM Facilities'
   },
   {
     id: '3',
-    image: 'https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?q=80&w=1920&auto=format&fit=crop',
-    title: 'Holistic Character & Athletics',
-    subtitle: 'Olympic-Standard Sports Arenas, Performing Arts & Leadership Pathways',
-    badge: '🏆 45+ National Championships'
+    image: '',
+    title: 'Character & Athletics',
+    subtitle: 'Sports Arenas, Performing Arts and Leadership Pathways',
+    badge: 'National Championship Standards'
   },
   {
     id: '4',
-    image: 'https://images.unsplash.com/photo-1562774053-701939374585?q=80&w=1920&auto=format&fit=crop',
-    title: 'Global Academic Pathways',
-    subtitle: 'Direct Progression to Top Ivy League & International Universities',
-    badge: '🌍 90% UNEB & Cambridge Passing Excellence'
+    image: '',
+    title: 'Academic Pathways',
+    subtitle: 'Direct Progression to Top Universities Worldwide',
+    badge: 'High UNEB & Cambridge Pass Rates'
   }
 ];
 
@@ -184,76 +184,33 @@ export const TEACHERS: Teacher[] = [
   }
 ];
 
-export const GALLERY_ITEMS: GalleryItem[] = [
-  {
-    id: '1',
-    title: 'State-of-the-Art Robotics & AI Lab',
-    category: 'stem',
-    image: 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?q=80&w=1200&auto=format&fit=crop',
-    description: 'Students testing autonomous robotics prototypes in our multi-million dollar STEM workshop.'
-  },
-  {
-    id: '2',
-    title: 'Olympic-Sized Aquatic Complex',
-    category: 'sports',
-    image: 'https://images.unsplash.com/photo-1530549387789-4c1017266635?q=80&w=1200&auto=format&fit=crop',
-    description: 'Heated 10-lane competition pool hosting regional inter-school swimming galas.'
-  },
-  {
-    id: '3',
-    title: 'Grand Symphony & Drama Auditorium',
-    category: 'arts',
-    image: 'https://images.unsplash.com/photo-1469488865564-c2de10f69f96?q=80&w=1200&auto=format&fit=crop',
-    description: 'Acoustically isolated 800-seat theater for musical galas, orchestral recitals, and theatrical plays.'
-  },
-  {
-    id: '4',
-    title: 'Global Youth Diplomacy Assembly',
-    category: 'leadership',
-    image: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?q=80&w=1200&auto=format&fit=crop',
-    description: 'Student parliament and Model United Nations delegation preparing for international debates.'
-  },
-  {
-    id: '5',
-    title: 'Futuristic Eco-Friendly Campus Grounds',
-    category: 'campus',
-    image: 'https://images.unsplash.com/photo-1562774053-701939374585?q=80&w=1200&auto=format&fit=crop',
-    description: 'Lush green courtyards, solar energy canopies, and serene outdoor study amphitheatres.'
-  },
-  {
-    id: '6',
-    title: 'Advanced Biotechnology & Chemistry Lab',
-    category: 'stem',
-    image: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?q=80&w=1200&auto=format&fit=crop',
-    description: 'High-precision micro-pipettes, spectrometers, and safety clean rooms.'
-  }
-];
+export const GALLERY_ITEMS: GalleryItem[] = [];
 
 export const TESTIMONIALS: Testimonial[] = [
   {
     id: '1',
     name: 'Dr. Arthur Mukasa',
-    role: 'Parent of Alumni (Harvard Class of 2028)',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=200&auto=format&fit=crop',
-    comment: 'Nexus Academy transformed my daughter from a timid student into an exceptionally articulate, confident young scientist. The UNEB results were stellar, and the Ivy League guidance was world-class!',
+    role: 'Parent of Alumni',
+    avatar: '',
+    comment: 'Nexus Academy helped my daughter build confidence and strong academic skills. The guidance provided was clear and supportive.',
     rating: 5,
     year: 'Class of 2024'
   },
   {
     id: '2',
     name: 'Patricia Namubiru',
-    role: 'Head Girl & UCE National Rank #1',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop',
-    comment: 'The glass laboratories, 24/7 digital library access, and passionate teachers provided me with every tool to achieve 8 aggregates in UCE. Nexus is truly a second home.',
+    role: 'Head Girl & Top UCE Graduate',
+    avatar: '',
+    comment: 'The dedicated teachers and modern study spaces gave me every tool to achieve strong results. Nexus is a great environment.',
     rating: 5,
     year: 'Senior 4 Graduate'
   },
   {
     id: '3',
     name: 'Eng. Timothy Tumusiime',
-    role: 'Alumni & Software Founder in London',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&auto=format&fit=crop',
-    comment: 'The coding bootcamps and robotics clubs at Nexus gave me an undeniable edge when I started my engineering degree. The discipline and moral foundation stayed with me.',
+    role: 'Alumni',
+    avatar: '',
+    comment: 'The computer studies and science activities at Nexus gave me a solid background for my engineering degree.',
     rating: 5,
     year: 'Class of 2020'
   }
@@ -263,98 +220,36 @@ export const ADMISSION_STEPS: AdmissionStep[] = [
   {
     stepNumber: 1,
     title: 'Online Application',
-    description: 'Complete our sleek digital application form with previous academic transcripts.',
-    detail: 'Takes less than 10 minutes. Upload PLE, UCE, or equivalent international records.',
+    description: 'Complete the online application form with previous academic records.',
+    detail: 'Simple and fast. Upload PLE, UCE, or equivalent report cards.',
     icon: 'FileEdit'
   },
   {
     stepNumber: 2,
-    title: 'Aptitude & Interview',
-    description: 'Attend a friendly interactive assessment session and scholar interview.',
-    detail: 'Evaluates critical thinking, creative problem-solving, and personal aspirations.',
+    title: 'Assessment & Interview',
+    description: 'Attend an interactive assessment and student interview.',
+    detail: 'Helps us understand student learning strengths and interests.',
     icon: 'UserCheck'
   },
   {
     stepNumber: 3,
     title: 'Official Acceptance',
-    description: 'Receive your formal admission offer and welcome scholar package.',
-    detail: 'Includes full fee structure breakdown, boarding guidelines, and uniform sizing.',
+    description: 'Receive your formal admission letter and welcome packet.',
+    detail: 'Includes fee structure, boarding details, and uniform information.',
     icon: 'MailCheck'
   },
   {
     stepNumber: 4,
     title: 'Begin Learning',
-    description: 'Step into a world of endless possibilities and transformative education.',
-    detail: 'Orientation week, buddy assignment, and personalized academic roadmap setup.',
+    description: 'Join the school community and start your academic journey.',
+    detail: 'Includes orientation week and student guidance.',
     icon: 'Rocket'
   }
 ];
 
-export const UPCOMING_EVENTS: EventItem[] = [
-  {
-    id: '1',
-    title: 'Annual Innovation & STEM Expo 2026',
-    date: 'August 18, 2026',
-    time: '09:00 AM - 04:00 PM',
-    location: 'Nexus Grand Auditorium & STEM Atrium',
-    category: 'Academic & Tech',
-    image: 'https://images.unsplash.com/photo-1511578314322-379afb476865?q=80&w=800&auto=format&fit=crop',
-    description: 'Exhibition of over 80 student robotics projects, AI applications, renewable energy solutions, and biotech inventions.'
-  },
-  {
-    id: '2',
-    title: 'Inter-House Sports & Aquatics Gala',
-    date: 'September 05, 2026',
-    time: '08:30 AM - 05:00 PM',
-    location: 'Nexus Olympic Turf & Aquatic Arena',
-    category: 'Athletics',
-    image: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?q=80&w=800&auto=format&fit=crop',
-    description: 'Thrilling track & field events, relays, swimming heats, and martial arts demonstrations.'
-  },
-  {
-    id: '3',
-    title: 'Parent & Scholar Career Pathways Summit',
-    date: 'September 22, 2026',
-    time: '02:00 PM - 06:00 PM',
-    location: 'Innovation Hub & Glass Conference Suite',
-    category: 'Admissions & Careers',
-    image: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=800&auto=format&fit=crop',
-    description: 'Interactive session with university admissions directors from Harvard, Oxford, Cambridge, and Makerere University.'
-  }
-];
+export const UPCOMING_EVENTS: EventItem[] = [];
 
-export const NEWS_ARTICLES: NewsItem[] = [
-  {
-    id: '1',
-    title: 'Nexus Academy Scholars Sweep Top Distinction Awards in UCE & UACE',
-    date: 'July 20, 2026',
-    author: 'Communications Office',
-    category: 'Academic Excellence',
-    image: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=800&auto=format&fit=crop',
-    summary: 'Nexus scholars scored 100% Grade 1 pass rates with 92% securing straight distinctions in Physics, Math, and Chemistry.',
-    content: 'The official national examination results released by UNEB confirmed Nexus Academy as a top-performing institution in the nation. Over 120 candidates achieved 8-aggregate totals in UCE, while our A-Level science combination candidates secured 20-point maximum scores across PCM and BCM.'
-  },
-  {
-    id: '2',
-    title: 'Unveiling the Advanced Robotics & Artificial Intelligence Wing',
-    date: 'June 14, 2026',
-    author: 'STEM Faculty Board',
-    category: 'Campus Facilities',
-    image: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?q=80&w=800&auto=format&fit=crop',
-    summary: 'A state-of-the-art $2.5M facility housing 3D printers, humanoid robotics rigs, and high-performance GPU clusters for machine learning.',
-    content: 'In line with our commitment to preparing future-ready leaders, Nexus Academy officially commissioned its new Robotics & AI Wing. The facility provides high school scholars with hands-on exposure to neural network design, embedded microcontrollers, and CAD engineering.'
-  },
-  {
-    id: '3',
-    title: 'Nexus Debate Team Victorious at African Youth Diplomacy Championship',
-    date: 'May 28, 2026',
-    author: 'Student Leadership Forum',
-    category: 'Co-Curricular',
-    image: 'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?q=80&w=800&auto=format&fit=crop',
-    summary: 'Our senior debaters secured 1st place in Nairobi, debating climate policy, global economic trade, and AI ethics.',
-    content: 'Competing against 48 premier academies across East and Southern Africa, the Nexus debate team demonstrated exceptional research depth, logical poise, and persuasive oratory.'
-  }
-];
+export const NEWS_ARTICLES: NewsItem[] = [];
 
 export const FAQS: FaqItem[] = [
   {
@@ -399,8 +294,8 @@ export const INITIAL_STUDENT_RESULTS: StudentResult[] = [
     gender: 'M',
     combinationOrStream: 'Senior 4 Science Stream A',
     aggregatesOrPoints: '8 Aggregates (Distinction 1 in 8 Subjects)',
-    divisionOrClass: 'Division 1 (Super Distinction)',
-    headteacherRemark: 'Outstanding candidate. Awarded National Academic Excellence Gold Medal.',
+    divisionOrClass: 'Division 1 (Distinction Rank)',
+    headteacherRemark: 'Outstanding candidate performance recorded.',
     verifiedStatus: true,
     subjects: [
       { code: '535', name: 'PHYSICS', grade: 'D1', scoreName: 'Distinction 1' },
@@ -421,7 +316,7 @@ export const INITIAL_STUDENT_RESULTS: StudentResult[] = [
     gender: 'F',
     combinationOrStream: 'Senior 4 Science Stream B',
     aggregatesOrPoints: '8 Aggregates (8 Distinctions)',
-    divisionOrClass: 'Division 1 (Super Distinction)',
+    divisionOrClass: 'Division 1 (Distinction Rank)',
     headteacherRemark: 'Exemplary performance across all sciences and humanistic subjects.',
     verifiedStatus: true,
     subjects: [

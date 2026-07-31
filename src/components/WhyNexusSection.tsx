@@ -72,27 +72,29 @@ export const WhyNexusSection: React.FC = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           
-          {/* Left Column: Large Campus Spotlight Image with Glass Overlay */}
+          {/* Left Column: Campus Spotlight Glass Box (No External Photos) */}
           <div className="lg:col-span-5 relative">
-            <div className="relative rounded-3xl overflow-hidden glass-card p-3 border border-sky-400/30 shadow-2xl">
-              <img
-                src="https://images.unsplash.com/photo-1562774053-701939374585?q=80&w=1200&auto=format&fit=crop"
-                alt="Nexus Academy Campus Grounds"
-                referrerPolicy="no-referrer"
-                className="w-full h-[520px] object-cover rounded-2xl"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#07111F] via-[#07111F]/20 to-transparent" />
-              
-              <div className="absolute bottom-6 left-6 right-6 p-5 rounded-2xl glass-card border border-white/20">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-sky-500/20 border border-sky-400 flex items-center justify-center">
-                    <Sparkles className="w-5 h-5 text-sky-300" />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-bold text-white">Future-Ready Architecture</h3>
-                    <p className="text-xs text-gray-300">Designed for collaboration, deep focus, and creative spark.</p>
-                  </div>
+            <div className="relative rounded-3xl overflow-hidden glass-card p-6 border border-sky-400/30 shadow-2xl h-[480px] flex flex-col justify-between bg-gradient-to-br from-[#10253C] via-[#0B1A2F] to-[#040A14]">
+              <div className="flex justify-between items-center">
+                <span className="px-3 py-1 rounded-full bg-sky-500/20 border border-sky-400/30 text-[10px] font-bold text-sky-300 uppercase tracking-widest">
+                  Nexus Campus
+                </span>
+                <Sparkles className="w-6 h-6 text-sky-400" />
+              </div>
+
+              <div className="my-auto text-center space-y-3 py-6">
+                <div className="w-16 h-16 rounded-2xl bg-sky-500/20 border border-sky-400/30 flex items-center justify-center mx-auto text-sky-300">
+                  <Monitor className="w-8 h-8" />
                 </div>
+                <h3 className="text-xl font-bold text-white heading-font">Future-Ready Architecture</h3>
+                <p className="text-xs text-sky-200 max-w-xs mx-auto leading-relaxed">
+                  Designed for student collaboration, academic focus, and creative spark.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl glass-card border border-white/10 bg-black/40">
+                <p className="text-xs font-semibold text-sky-300 uppercase tracking-wider">Campus Facilities</p>
+                <p className="text-xs font-bold text-white mt-0.5">Dual Curriculums & Modern Science Labs</p>
               </div>
             </div>
 

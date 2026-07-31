@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore, doc, getDoc, setDoc, deleteDoc, writeBatch, collection } from 'firebase/firestore';
-import { StudentResult } from '../types';
+import { getFirestore, doc, getDoc, setDoc, deleteDoc, writeBatch, collection, getDocs } from 'firebase/firestore';
+import { StudentResult, GalleryItem, EventItem, NewsItem } from '../types';
 
 // Optional Firebase credentials setup (reads from environment if configured)
 const firebaseConfig = {
@@ -287,3 +287,154 @@ export async function searchStudentInGoogleSheet(
 
   return null;
 }
+
+// ==========================================
+// FIRESTORE GALLERY COLLECTION HELPERS
+// ==========================================
+
+export async function getGalleryFromFirestore(): Promise<GalleryItem[]> {
+  try {
+    const snap = await getDocs(collection(db, 'gallery'));
+    if (!snap.empty) {
+      const items: GalleryItem[] = [];
+      snap.forEach((docSnap) => {
+        items.push(docSnap.data() as GalleryItem);
+      });
+      localStorage.setItem('nexus_gallery_items', JSON.stringify(items));
+      return items;
+    }
+  } catch (err) {
+    console.warn("Firestore gallery query notice:", err);
+  }
+
+  const saved = localStorage.getItem('nexus_gallery_items');
+  return saved ? JSON.parse(saved) : [];
+}
+
+export async function addGalleryItemToFirestore(item: GalleryItem): Promise<boolean> {
+  try {
+    const docRef = doc(db, 'gallery', item.id);
+    await setDoc(docRef, { ...item, createdAt: new Date().toISOString() }, { merge: true });
+  } catch (err) {
+    console.warn("Firestore gallery upload notice:", err);
+  }
+
+  const current = await getGalleryFromFirestore();
+  const updated = [item, ...current.filter(i => i.id !== item.id)];
+  localStorage.setItem('nexus_gallery_items', JSON.stringify(updated));
+  return true;
+}
+
+export async function deleteGalleryItemFromFirestore(id: string): Promise<boolean> {
+  try {
+    await deleteDoc(doc(db, 'gallery', id));
+  } catch (err) {
+    console.warn("Firestore gallery delete notice:", err);
+  }
+
+  const current = await getGalleryFromFirestore();
+  const updated = current.filter(i => i.id !== id);
+  localStorage.setItem('nexus_gallery_items', JSON.stringify(updated));
+  return true;
+}
+
+// ==========================================
+// FIRESTORE EVENTS COLLECTION HELPERS
+// ==========================================
+
+export async function getEventsFromFirestore(): Promise<EventItem[]> {
+  try {
+    const snap = await getDocs(collection(db, 'events'));
+    if (!snap.empty) {
+      const items: EventItem[] = [];
+      snap.forEach((docSnap) => {
+        items.push(docSnap.data() as EventItem);
+      });
+      localStorage.setItem('nexus_events_items', JSON.stringify(items));
+      return items;
+    }
+  } catch (err) {
+    console.warn("Firestore events query notice:", err);
+  }
+
+  const saved = localStorage.getItem('nexus_events_items');
+  return saved ? JSON.parse(saved) : [];
+}
+
+export async function addEventToFirestore(item: EventItem): Promise<boolean> {
+  try {
+    const docRef = doc(db, 'events', item.id);
+    await setDoc(docRef, { ...item, createdAt: new Date().toISOString() }, { merge: true });
+  } catch (err) {
+    console.warn("Firestore event upload notice:", err);
+  }
+
+  const current = await getEventsFromFirestore();
+  const updated = [item, ...current.filter(i => i.id !== item.id)];
+  localStorage.setItem('nexus_events_items', JSON.stringify(updated));
+  return true;
+}
+
+export async function deleteEventFromFirestore(id: string): Promise<boolean> {
+  try {
+    await deleteDoc(doc(db, 'events', id));
+  } catch (err) {
+    console.warn("Firestore event delete notice:", err);
+  }
+
+  const current = await getEventsFromFirestore();
+  const updated = current.filter(i => i.id !== id);
+  localStorage.setItem('nexus_events_items', JSON.stringify(updated));
+  return true;
+}
+
+// ==========================================
+// FIRESTORE NEWS COLLECTION HELPERS
+// ==========================================
+
+export async function getNewsFromFirestore(): Promise<NewsItem[]> {
+  try {
+    const snap = await getDocs(collection(db, 'news'));
+    if (!snap.empty) {
+      const items: NewsItem[] = [];
+      snap.forEach((docSnap) => {
+        items.push(docSnap.data() as NewsItem);
+      });
+      localStorage.setItem('nexus_news_items', JSON.stringify(items));
+      return items;
+    }
+  } catch (err) {
+    console.warn("Firestore news query notice:", err);
+  }
+
+  const saved = localStorage.getItem('nexus_news_items');
+  return saved ? JSON.parse(saved) : [];
+}
+
+export async function addNewsToFirestore(item: NewsItem): Promise<boolean> {
+  try {
+    const docRef = doc(db, 'news', item.id);
+    await setDoc(docRef, { ...item, createdAt: new Date().toISOString() }, { merge: true });
+  } catch (err) {
+    console.warn("Firestore news upload notice:", err);
+  }
+
+  const current = await getNewsFromFirestore();
+  const updated = [item, ...current.filter(i => i.id !== item.id)];
+  localStorage.setItem('nexus_news_items', JSON.stringify(updated));
+  return true;
+}
+
+export async function deleteNewsFromFirestore(id: string): Promise<boolean> {
+  try {
+    await deleteDoc(doc(db, 'news', id));
+  } catch (err) {
+    console.warn("Firestore news delete notice:", err);
+  }
+
+  const current = await getNewsFromFirestore();
+  const updated = current.filter(i => i.id !== id);
+  localStorage.setItem('nexus_news_items', JSON.stringify(updated));
+  return true;
+}
+

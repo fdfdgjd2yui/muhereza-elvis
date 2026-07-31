@@ -1,0 +1,89 @@
+{
+  "entities": {
+    "StudentResult": {
+      "title": "StudentResult",
+      "description": "Student national exam results record",
+      "type": "object",
+      "properties": {
+        "indexNumber": { "type": "string", "maxLength": 50 },
+        "studentName": { "type": "string", "maxLength": 100 },
+        "level": { "type": "string", "enum": ["UCE", "UACE"] },
+        "examYear": { "type": "integer" },
+        "gender": { "type": "string", "enum": ["M", "F"] },
+        "combinationOrStream": { "type": "string", "maxLength": 100 },
+        "aggregatesOrPoints": { "type": "string", "maxLength": 100 },
+        "divisionOrClass": { "type": "string", "maxLength": 100 },
+        "headteacherRemark": { "type": "string", "maxLength": 500 },
+        "verifiedStatus": { "type": "boolean" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["indexNumber", "studentName", "level", "examYear"]
+    },
+    "GalleryItem": {
+      "title": "GalleryItem",
+      "description": "School gallery item uploaded by admin",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 100 },
+        "title": { "type": "string", "maxLength": 200 },
+        "category": { "type": "string", "maxLength": 50 },
+        "image": { "type": "string", "maxLength": 500 },
+        "description": { "type": "string", "maxLength": 1000 },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "title", "category"]
+    },
+    "EventItem": {
+      "title": "EventItem",
+      "description": "School upcoming event published by admin",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 100 },
+        "title": { "type": "string", "maxLength": 200 },
+        "date": { "type": "string", "maxLength": 50 },
+        "time": { "type": "string", "maxLength": 50 },
+        "location": { "type": "string", "maxLength": 200 },
+        "category": { "type": "string", "maxLength": 50 },
+        "image": { "type": "string", "maxLength": 500 },
+        "description": { "type": "string", "maxLength": 1000 },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "title", "date", "description"]
+    },
+    "NewsItem": {
+      "title": "NewsItem",
+      "description": "School news update posted by admin",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 100 },
+        "title": { "type": "string", "maxLength": 200 },
+        "date": { "type": "string", "maxLength": 50 },
+        "author": { "type": "string", "maxLength": 100 },
+        "category": { "type": "string", "maxLength": 50 },
+        "image": { "type": "string", "maxLength": 500 },
+        "summary": { "type": "string", "maxLength": 500 },
+        "content": { "type": "string", "maxLength": 5000 },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "title", "date", "content"]
+    }
+  },
+  "firestore": {
+    "/students/{studentId}": {
+      "schema": "StudentResult",
+      "description": "Collection of student academic results"
+    },
+    "/gallery/{galleryId}": {
+      "schema": "GalleryItem",
+      "description": "Collection of gallery items"
+    },
+    "/events/{eventId}": {
+      "schema": "EventItem",
+      "description": "Collection of school events"
+    },
+    "/news/{newsId}": {
+      "schema": "NewsItem",
+      "description": "Collection of school news articles"
+    }
+  }
+}
