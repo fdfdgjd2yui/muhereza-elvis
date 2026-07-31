@@ -1,0 +1,6 @@
+{
+  "name": "Nexus Academy",
+  "description": "A fictional ultra-premium international school web platform featuring glassmorphism design, UNEB results portal, interactive campus tour, and admissions.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
