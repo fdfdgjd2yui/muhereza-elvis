@@ -11,13 +11,12 @@ import {
   Sparkles, 
   Award, 
   PhoneCall, 
-  Lock,
   Compass,
-  ShieldCheck,
   HelpCircle,
-  Newspaper
+  UserCheck,
+  ShieldCheck
 } from 'lucide-react';
-import { PROGRAMS, TEACHERS, UPCOMING_EVENTS, NEWS_ARTICLES } from '../data/schoolData';
+import { PROGRAMS, UPCOMING_EVENTS } from '../data/schoolData';
 
 interface SearchModalProps {
   isOpen: boolean;
@@ -37,6 +36,24 @@ interface SectionSearchItem {
 }
 
 const PUBLIC_WEBSITE_SECTIONS: SectionSearchItem[] = [
+  {
+    id: 'head-teacher',
+    title: 'Message from the Head Teacher',
+    subtitle: 'Welcome message & vision from Head Teacher Muhereza Elvis',
+    category: 'Administration',
+    keywords: ['head teacher', 'headteacher', 'principal', 'headmaster', 'welcome', 'muhereza elvis', 'elvis', 'message', 'administration', 'leadership', 'letter'],
+    icon: UserCheck,
+    action: 'section'
+  },
+  {
+    id: 'stats',
+    title: 'School Statistics & Key Metrics',
+    subtitle: '1000+ Students Enrolled & 50+ Teaching & Support Staff',
+    category: 'Overview',
+    keywords: ['stats', 'statistics', 'enrolled', 'students', 'staff', 'teachers', 'numbers', 'achievement', 'count', 'metrics'],
+    icon: Users,
+    action: 'section'
+  },
   {
     id: 'why-nexus',
     title: 'About Us & Vision',
@@ -65,15 +82,6 @@ const PUBLIC_WEBSITE_SECTIONS: SectionSearchItem[] = [
     action: 'section'
   },
   {
-    id: 'teachers',
-    title: 'Faculty & Educator Directory',
-    subtitle: 'Meet our master teaching staff and department heads',
-    category: 'About Us',
-    keywords: ['teachers', 'faculty', 'educators', 'staff', 'mentors', 'instructors', 'tutors'],
-    icon: Users,
-    action: 'section'
-  },
-  {
     id: 'student-life',
     title: 'Student Life & Campus Gallery',
     subtitle: 'Sports, robotics labs, arts, music, and co-curricular clubs',
@@ -98,15 +106,6 @@ const PUBLIC_WEBSITE_SECTIONS: SectionSearchItem[] = [
     category: 'Events',
     keywords: ['events', 'calendar', 'expo', 'open day', 'gala', 'exhibition', 'schedule', 'upcoming'],
     icon: Calendar,
-    action: 'section'
-  },
-  {
-    id: 'news',
-    title: 'News & Achievements',
-    subtitle: 'Latest campus news, academic accolades, & official press',
-    category: 'News',
-    keywords: ['news', 'announcements', 'updates', 'press', 'achievements', 'blog', 'articles'],
-    icon: Newspaper,
     action: 'section'
   },
   {
@@ -171,14 +170,6 @@ export const SearchModal: React.FC<SearchModalProps> = ({
       )
     : [];
 
-  const matchedTeachers = cleanQuery
-    ? TEACHERS.filter(
-        (t) =>
-          t.name.toLowerCase().includes(cleanQuery) ||
-          t.subject.toLowerCase().includes(cleanQuery)
-      )
-    : [];
-
   const matchedEvents = cleanQuery
     ? UPCOMING_EVENTS.filter((e) =>
         e.title.toLowerCase().includes(cleanQuery)
@@ -204,9 +195,6 @@ export const SearchModal: React.FC<SearchModalProps> = ({
     } else if (matchedPrograms.length > 0) {
       onClose();
       onNavigateToSection('programs');
-    } else if (matchedTeachers.length > 0) {
-      onClose();
-      onNavigateToSection('teachers');
     } else if (matchedEvents.length > 0) {
       onClose();
       onNavigateToSection('events');
@@ -254,12 +242,14 @@ export const SearchModal: React.FC<SearchModalProps> = ({
             </p>
             <div className="flex flex-wrap gap-1.5">
               {[
+                { label: "Head Teacher's Message", id: 'head-teacher' },
                 { label: 'About Us', id: 'why-nexus' },
+                { label: 'School Stats', id: 'stats' },
                 { label: 'Admissions', id: 'admissions-process' },
                 { label: 'Campus Gallery', id: 'student-life' },
                 { label: 'Upcoming Events', id: 'events' },
-                { label: 'Contact Us', id: 'contact' },
                 { label: 'Academic Programs', id: 'programs' },
+                { label: 'Contact Us', id: 'contact' },
                 { label: 'Results Portal', id: 'results', isResults: true }
               ].map((chip) => (
                 <button
@@ -343,29 +333,6 @@ export const SearchModal: React.FC<SearchModalProps> = ({
             </div>
           )}
 
-          {/* Faculty Educators */}
-          {matchedTeachers.length > 0 && (
-            <div className="space-y-1 mt-3">
-              <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">
-                Matching Teachers & Mentors
-              </p>
-              {matchedTeachers.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => {
-                    onClose();
-                    onNavigateToSection('teachers');
-                  }}
-                  className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 text-left text-slate-800 border border-slate-100"
-                >
-                  <span className="font-medium text-xs">{t.name} - {t.subject}</span>
-                  <span className="text-xs text-emerald-700 font-semibold">View Faculty Section →</span>
-                </button>
-              ))}
-            </div>
-          )}
-
           {/* Events */}
           {matchedEvents.length > 0 && (
             <div className="space-y-1 mt-3">
@@ -389,7 +356,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
             </div>
           )}
 
-          {cleanQuery && matchedSections.length === 0 && matchedPrograms.length === 0 && matchedTeachers.length === 0 && (
+          {cleanQuery && matchedSections.length === 0 && matchedPrograms.length === 0 && matchedEvents.length === 0 && (
             <div className="p-6 text-center text-xs text-slate-500 bg-slate-50 rounded-2xl border border-slate-200">
               No public website section matched "{query}". Try searching for 'About', 'Admissions', 'Gallery', 'Events', 'Contact Us', or 'Academics'.
             </div>

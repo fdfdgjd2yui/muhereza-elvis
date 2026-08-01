@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { Navbar } from './components/Navbar';
 import { HeroSection } from './components/HeroSection';
+import { StatsSection } from './components/StatsSection';
 import { WhyNexusSection } from './components/WhyNexusSection';
+import { HeadTeacherMessageSection } from './components/HeadTeacherMessageSection';
 import { AcademicExcellenceSection } from './components/AcademicExcellenceSection';
 import { EventsSection } from './components/EventsSection';
 import { StudentLifeSection } from './components/StudentLifeSection';
 import { ProgramsSection } from './components/ProgramsSection';
-import { TeachersSection } from './components/TeachersSection';
-import { NewsSection } from './components/NewsSection';
 import { AdmissionsSection } from './components/AdmissionsSection';
 import { FaqSection } from './components/FaqSection';
 import { ContactSection } from './components/ContactSection';
@@ -83,6 +83,12 @@ export default function App() {
               }}
             />
 
+            {/* Statistics Counter Section */}
+            <StatsSection />
+
+            {/* Message from the Head Teacher */}
+            <HeadTeacherMessageSection />
+
             {/* Why Choose Nexus Academy */}
             <WhyNexusSection />
 
@@ -100,12 +106,6 @@ export default function App() {
               onOpenApply={() => setIsApplyOpen(true)}
               onSelectProgram={(prog) => setSelectedProgram(prog)}
             />
-
-            {/* Master Educators Faculty */}
-            <TeachersSection />
-
-            {/* Institutional Press & News */}
-            <NewsSection />
 
             {/* Admissions 4-Step Process */}
             <AdmissionsSection onOpenApply={() => setIsApplyOpen(true)} />

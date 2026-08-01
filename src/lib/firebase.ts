@@ -2,7 +2,7 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore, doc, getDoc, setDoc, deleteDoc, writeBatch, collection, getDocs } from 'firebase/firestore';
 import { StudentResult, GalleryItem, EventItem, NewsItem } from '../types';
-import { UPCOMING_EVENTS, INITIAL_GALLERY_ITEMS, NEWS_ARTICLES } from '../data/schoolData';
+import { UPCOMING_EVENTS, INITIAL_GALLERY_ITEMS, NEWS_ARTICLES, INITIAL_STUDENT_RESULTS } from '../data/schoolData';
 
 // Check if Firebase is configured with real credentials
 export const isFirebaseConfigured = Boolean(
@@ -90,13 +90,15 @@ export async function syncStudentsToFirestore(students: StudentResult[]): Promis
 export async function deleteStudentFromFirestore(indexNumber: string): Promise<boolean> {
   const docId = indexNumber.trim().toUpperCase();
   const saved = localStorage.getItem('nexus_student_results');
+  let currentList: StudentResult[] = INITIAL_STUDENT_RESULTS;
   if (saved !== null) {
     try {
-      const list: StudentResult[] = JSON.parse(saved);
-      const filtered = list.filter(s => s.indexNumber.trim().toUpperCase() !== docId);
-      localStorage.setItem('nexus_student_results', JSON.stringify(filtered));
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) currentList = parsed;
     } catch (e) {}
   }
+  const filtered = currentList.filter(s => s.indexNumber.trim().toUpperCase() !== docId);
+  localStorage.setItem('nexus_student_results', JSON.stringify(filtered));
 
   if (!isFirebaseConfigured) return true;
   try {

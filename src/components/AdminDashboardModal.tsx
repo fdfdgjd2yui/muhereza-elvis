@@ -83,6 +83,12 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
   const [galleryDescription, setGalleryDescription] = useState('');
   const [galleryImageBase64, setGalleryImageBase64] = useState('');
 
+  // Confirm deletion inline state (replaces native window.confirm which is blocked in sandboxed iframe)
+  const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
+  const [deletingGalleryId, setDeletingGalleryId] = useState<string | null>(null);
+  const [deletingStudentId, setDeletingStudentId] = useState<string | null>(null);
+  const [isConfirmingClearAll, setIsConfirmingClearAll] = useState<boolean>(false);
+
   useEffect(() => {
     if (isOpen && isAuthenticated) {
       loadData();
@@ -218,11 +224,15 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
   };
 
   const handleDeleteEvent = async (id: string) => {
-    if (!window.confirm('Delete this event?')) return;
-    await deleteEventFromFirestore(id);
-    window.dispatchEvent(new Event('nexus_events_updated'));
-    await loadData();
-    showToast('success', 'Event deleted.');
+    try {
+      await deleteEventFromFirestore(id);
+      window.dispatchEvent(new Event('nexus_events_updated'));
+      await loadData();
+      setDeletingEventId(null);
+      showToast('success', 'Event deleted successfully.');
+    } catch (err: any) {
+      showToast('error', `Failed to delete event: ${err?.message || 'Error'}`);
+    }
   };
 
   // Add Gallery Item
@@ -252,33 +262,37 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
   };
 
   const handleDeleteGallery = async (id: string) => {
-    if (!window.confirm('Delete this gallery photo?')) return;
-    await deleteGalleryItemFromFirestore(id);
-    window.dispatchEvent(new Event('nexus_gallery_updated'));
-    await loadData();
-    showToast('success', 'Gallery item deleted.');
+    try {
+      await deleteGalleryItemFromFirestore(id);
+      window.dispatchEvent(new Event('nexus_gallery_updated'));
+      await loadData();
+      setDeletingGalleryId(null);
+      showToast('success', 'Gallery item deleted successfully.');
+    } catch (err: any) {
+      showToast('error', `Failed to delete photo: ${err?.message || 'Error'}`);
+    }
   };
 
   // Student Deletion
   const handleDeleteStudent = async (indexNumber: string) => {
-    if (!window.confirm(`Delete record for Index Number ${indexNumber}?`)) return;
     try {
-      await deleteStudentFromFirestore(indexNumber);
       const targetId = indexNumber.trim().toUpperCase();
+      await deleteStudentFromFirestore(targetId);
       const updated = studentResults.filter(s => s.indexNumber.trim().toUpperCase() !== targetId);
       onUpdateResults(updated);
-      showToast('success', `Deleted record ${indexNumber}.`);
+      setDeletingStudentId(null);
+      showToast('success', `Deleted student record for Index No: ${indexNumber}`);
     } catch (err: any) {
       showToast('error', `Deletion failed: ${err?.message || 'Error'}`);
     }
   };
 
   const handleClearAllStudents = async () => {
-    if (!window.confirm('Are you sure you want to clear ALL student records?')) return;
     try {
       const ids = studentResults.map(s => s.indexNumber);
       await clearAllStudentsFromFirestore(ids);
       onUpdateResults([]);
+      setIsConfirmingClearAll(false);
       showToast('success', 'Cleared all student records.');
     } catch (err: any) {
       showToast('error', `Failed to clear students: ${err?.message}`);
@@ -583,13 +597,35 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                               <p className="text-[11px] text-slate-600 line-clamp-1 mt-1">{evt.description}</p>
                             </div>
                           </div>
-                          <button
-                            onClick={() => handleDeleteEvent(evt.id)}
-                            className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors shrink-0"
-                            title="Delete Event"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {deletingEventId === evt.id ? (
+                              <div className="flex items-center gap-1 bg-red-100 p-1 rounded-lg border border-red-300">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteEvent(evt.id)}
+                                  className="px-2 py-1 rounded bg-red-600 text-white text-[10px] font-extrabold hover:bg-red-700 transition-colors"
+                                >
+                                  Confirm
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setDeletingEventId(null)}
+                                  className="px-2 py-1 rounded bg-slate-200 text-slate-700 text-[10px] font-bold hover:bg-slate-300 transition-colors"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setDeletingEventId(evt.id)}
+                                className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                                title="Delete Event"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -676,12 +712,32 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                           </div>
                         )}
                         <p className="text-[11px] font-bold text-[#0B1A30] truncate">{g.title}</p>
-                        <button
-                          onClick={() => handleDeleteGallery(g.id)}
-                          className="w-full py-1 rounded bg-red-50 text-red-600 text-[10px] font-bold hover:bg-red-100 transition-colors"
-                        >
-                          Delete Photo
-                        </button>
+                        {deletingGalleryId === g.id ? (
+                          <div className="flex items-center gap-1 pt-1">
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteGallery(g.id)}
+                              className="flex-1 py-1 rounded bg-red-600 text-white text-[10px] font-extrabold hover:bg-red-700 transition-colors"
+                            >
+                              Confirm
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDeletingGalleryId(null)}
+                              className="flex-1 py-1 rounded bg-slate-200 text-slate-700 text-[10px] font-bold hover:bg-slate-300 transition-colors"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setDeletingGalleryId(g.id)}
+                            className="w-full py-1 rounded bg-red-50 text-red-600 text-[10px] font-bold hover:bg-red-100 transition-colors"
+                          >
+                            Delete Photo
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -704,13 +760,34 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                     />
                   </div>
 
-                  <button
-                    onClick={handleClearAllStudents}
-                    className="px-3.5 py-2 rounded-xl bg-red-50 text-red-700 border border-red-200 text-xs font-bold hover:bg-red-100 transition-colors flex items-center gap-1.5"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>Clear All Student Records</span>
-                  </button>
+                  {isConfirmingClearAll ? (
+                    <div className="flex items-center gap-1.5 bg-red-100 border border-red-300 p-1 rounded-xl">
+                      <span className="text-[11px] font-bold text-red-900 px-1">Clear ALL student records?</span>
+                      <button
+                        type="button"
+                        onClick={handleClearAllStudents}
+                        className="px-2.5 py-1 rounded-lg bg-red-600 text-white text-xs font-black hover:bg-red-700 transition-colors"
+                      >
+                        Yes, Clear All
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsConfirmingClearAll(false)}
+                        className="px-2 py-1 rounded-lg bg-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-300 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setIsConfirmingClearAll(true)}
+                      className="px-3.5 py-2 rounded-xl bg-red-50 text-red-700 border border-red-200 text-xs font-bold hover:bg-red-100 transition-colors flex items-center gap-1.5"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Clear All Student Records</span>
+                    </button>
+                  )}
                 </div>
 
                 <div className="overflow-x-auto border border-slate-200 rounded-xl max-h-72">
@@ -741,12 +818,33 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                             <td className="p-2.5 text-slate-600">{s.divisionOrClass}</td>
                             <td className="p-2.5 text-slate-600">{s.aggregatesOrPoints}</td>
                             <td className="p-2.5 text-right">
-                              <button
-                                onClick={() => handleDeleteStudent(s.indexNumber)}
-                                className="p-1 rounded bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                              {deletingStudentId === s.indexNumber ? (
+                                <div className="inline-flex items-center gap-1 bg-red-100 p-1 rounded-lg border border-red-300">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteStudent(s.indexNumber)}
+                                    className="px-2 py-0.5 rounded bg-red-600 text-white text-[10px] font-extrabold hover:bg-red-700 transition-colors"
+                                  >
+                                    Confirm
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setDeletingStudentId(null)}
+                                    className="px-2 py-0.5 rounded bg-slate-200 text-slate-700 text-[10px] font-bold hover:bg-slate-300 transition-colors"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => setDeletingStudentId(s.indexNumber)}
+                                  className="p-1 rounded bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                                  title="Delete student record"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
                             </td>
                           </tr>
                         ))
