@@ -72,18 +72,18 @@ const ACADEMIC_STAGES = [
   },
   {
     stage: 'University',
-    title: 'Ivy League & Global Placement',
-    sub: 'Harvard, Oxford, Makerere & Beyond',
-    badge: '100% Placement Record',
-    description: 'Seamless transition into world-renowned medicine, engineering, law, technology, and business faculties.',
-    motivation: 'Launching ethical, tech-forward global visionaries equipped to lead industries and transform communities.',
-    targetOutcome: 'Direct University Admission & Merit Sponsorships',
-    metric: '100% Global Transition',
+    title: 'University Placement & Merit Sponsorships',
+    sub: 'Makerere, MUST, Kyambogo & Overseas Universities',
+    badge: 'High Sponsorship Record',
+    description: 'Seamless transition into top degree programs in Medicine, Engineering, Law, Computing, Business, and Education.',
+    motivation: 'Launching ethical, patriotic, and skilled Ugandan leaders equipped to serve nation and global communities.',
+    targetOutcome: 'Direct University Admission & Government Sponsorships',
+    metric: '100% Tertiary Transition',
     milestones: [
-      'Harvard, MIT, Oxford & Makerere Entry',
-      'Global Alumni Mentorship Network',
-      'Tech Startup Incubation Support',
-      'Leadership & Public Policy Fellows'
+      'Makerere, MUST & Kyambogo Government Entry',
+      'PUJO University Placement Guidance',
+      'Overseas Merit Scholarship Mentorship',
+      'Leadership & Public Service Values'
     ],
     icon: Globe
   }

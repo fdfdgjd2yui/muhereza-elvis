@@ -38,10 +38,10 @@ export const ResultsPortalPage: React.FC<ResultsPortalPageProps> = ({
     setHasSearched(true);
 
     try {
-      // Simulated realistic network delay when querying UNEB server
-      await new Promise((resolve) => setTimeout(resolve, 1100));
+      // Network delay simulation for UNEB server query
+      await new Promise((resolve) => setTimeout(resolve, 800));
 
-      // 1. Check in local admin array first (primary source of truth for active students)
+      // 1. Check in local admin array first
       const matchedLocal = allResults.find(
         (s) => s.indexNumber.trim().toUpperCase() === cleanIndex ||
                s.indexNumber.replace(/[\s/]/g, '').toUpperCase() === normalizedIndex
@@ -69,11 +69,11 @@ export const ResultsPortalPage: React.FC<ResultsPortalPageProps> = ({
   };
 
   return (
-    <div id="uneb-results" className="bg-white text-slate-900 py-12 px-4 sm:px-6 max-w-4xl mx-auto">
+    <div id="uneb-results" className="bg-white text-slate-900 py-6 px-4 sm:px-6 max-w-4xl mx-auto">
       <div className="border-b border-slate-300 pb-4 mb-6">
-        <h2 className="text-2xl font-bold text-[#0B1A30]">Public UNEB Student Results Portal</h2>
+        <h2 className="text-2xl font-bold text-[#0B1A30]">Official UNEB Results Verification</h2>
         <p className="text-xs text-slate-600 mt-1">
-          Direct verification of official candidate examination result slips.
+          Direct lookup and verification of candidate examination score sheets.
         </p>
       </div>
 
@@ -81,7 +81,7 @@ export const ResultsPortalPage: React.FC<ResultsPortalPageProps> = ({
       <form onSubmit={handleCheckResults} className="space-y-4 max-w-xl">
         <div>
           <label htmlFor="uneb-index-input" className="block text-xs font-bold text-[#0B1A30] uppercase mb-1">
-            Enter UNEB Index Number
+            Enter Candidate Index Number
           </label>
           <div className="flex gap-2">
             <input

@@ -13,33 +13,33 @@ const iconMap: Record<string, React.ReactNode> = {
 
 const FEATURE_DETAILS: Record<string, { specs: string[]; quote: string; image: string }> = {
   '1': {
-    specs: ['AI-Assisted Study Advisory', 'Real-time Cognitive Pace Analytics', 'Personalized UNEB Revision Dashboards'],
-    quote: 'Adapting continuous assessment to cultivate every scholar’s natural intelligence.',
+    specs: ['Continuous UNEB Assessment', 'Saturday Joint Mock Clinics', 'Personalized Student Target Sheets'],
+    quote: 'Targeted continuous assessment to prepare every candidate for UNEB UCE and UACE distinction results.',
     image: 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?q=80&w=1200&auto=format&fit=crop'
   },
   '2': {
-    specs: ['Ergonomic Acoustic Tuning', 'Interactive 4K Multi-touch Boards', '1Gbps High-Speed Fiber Mesh'],
-    quote: 'Designed for effortless visual clarity and collaborative student projects.',
+    specs: ['Spacious Well-Ventilated Rooms', 'Digital Projectors & Whiteboards', 'Comfortable Single Desks'],
+    quote: 'Conducive learning environment tailored for focused study and student participation.',
     image: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?q=80&w=1200&auto=format&fit=crop'
   },
   '3': {
-    specs: ['Industrial Robotics Workbenches', 'Biotech Gene Amplification Units', 'Advanced Spectrometry Equipment'],
-    quote: 'Hands-on experimentation matching premier international university research labs.',
+    specs: ['Fully Stocked Chemistry Reagents', 'Physics Mechanics & Optics Kits', 'Biology Microscope & Specimen Station'],
+    quote: 'Practical lab work empowering students to master UNEB practical examinations with confidence.',
     image: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?q=80&w=1200&auto=format&fit=crop'
   },
   '4': {
-    specs: ['150,000+ Digital Titles', 'JSTOR Academic Journal Access', 'Acoustically Isolated Focus Pods'],
-    quote: 'Comprehensive digital research repositories for deep academic thesis work.',
+    specs: ['Comprehensive Textbooks Repository', 'UNEB Past Papers Collection (2000-2025)', 'High-Speed Computer & ICT Center'],
+    quote: 'Rich learning resources to support independent research and revision for both O-Level & A-Level.',
     image: 'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?q=80&w=1200&auto=format&fit=crop'
   },
   '5': {
-    specs: ['FIFA-Standard Synthetic Pitch', 'Heated 50m Competition Pool', 'Multi-sport Indoor Gymnasium'],
-    quote: 'Nurturing physical vitality, teamwork, and championship athletic resilience.',
+    specs: ['Standard Football Grass Pitch', 'Basketball & Netball Courts', 'Inter-House Sports Competitions'],
+    quote: 'Fostering teamwork, physical wellness, and talent development through sports.',
     image: 'https://images.unsplash.com/photo-1530549387789-4c1017266635?q=80&w=1200&auto=format&fit=crop'
   },
   '6': {
-    specs: ['Global Youth Diplomacy Forum', 'Community Impact Grants', 'Oxford-Style Debate Society'],
-    quote: 'Instilling ethical integrity, public service values, and articulate speech.',
+    specs: ['Scripture Union & Chaplaincy', 'Student Executive Council', 'Debate & Wildlife Clubs'],
+    quote: 'Cultivating spiritual growth, moral integrity, public speaking, and responsible student leadership.',
     image: 'https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?q=80&w=1200&auto=format&fit=crop'
   }
 };

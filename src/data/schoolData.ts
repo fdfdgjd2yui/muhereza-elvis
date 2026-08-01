@@ -17,29 +17,29 @@ export const HERO_SLIDES = [
     id: '1',
     image: '',
     title: "Building Tomorrow's Leaders",
-    subtitle: 'Quality Education for Future Innovators and Visionaries',
-    badge: 'Top Ranked International Academy'
+    subtitle: 'Quality Education for Future Innovators and Leaders in Uganda',
+    badge: 'Top Ranked Secondary Academy'
   },
   {
     id: '2',
     image: '',
-    title: 'STEM & AI Innovation Hub',
-    subtitle: 'Robotics, Science Labs and Digital Literacy',
-    badge: 'Advanced STEM Facilities'
+    title: 'Science & ICT Innovation',
+    subtitle: 'Equipped Science Labs, Computer Room and Digital Skills',
+    badge: 'Modern Science & Tech Facilities'
   },
   {
     id: '3',
     image: '',
-    title: 'Character & Athletics',
-    subtitle: 'Sports Arenas, Performing Arts and Leadership Pathways',
-    badge: 'National Championship Standards'
+    title: 'Character, Sports & Culture',
+    subtitle: 'Football, Netball, Music Dance Drama and Leadership Pathways',
+    badge: 'National Inter-School Championship Standards'
   },
   {
     id: '4',
     image: '',
     title: 'Academic Pathways',
-    subtitle: 'Direct Progression to Top Universities Worldwide',
-    badge: 'High UNEB & Cambridge Pass Rates'
+    subtitle: 'Direct Progression to Makerere, MUST, Kyambogo & Universities Worldwide',
+    badge: 'High UNEB Division 1 Pass Rates'
   }
 ];
 
@@ -48,21 +48,21 @@ export const TRUSTED_METRICS: Metric[] = [
     id: '1',
     value: '17+',
     label: 'Years of Excellence',
-    description: 'Pioneering holistic elite education since 2009',
+    description: 'Pioneering holistic secondary education since 2009',
     iconName: 'Award'
   },
   {
     id: '2',
-    value: '90%',
-    label: 'Passing Excellence',
-    description: 'Consistently high distinction pass rates in UNEB & Cambridge sittings',
+    value: '94%',
+    label: 'Division 1 Pass Rate',
+    description: 'Consistently high distinction pass rates in UNEB UCE & UACE sittings',
     iconName: 'GraduationCap'
   },
   {
     id: '4',
     value: '45+',
-    label: 'Master Educators',
-    description: 'PhD & Masters qualified faculty with international experience',
+    label: 'Qualified Educators',
+    description: 'Seasoned graduate teachers & UNEB examiners with proven track records',
     iconName: 'UserCheck'
   }
 ];
@@ -70,38 +70,38 @@ export const TRUSTED_METRICS: Metric[] = [
 export const WHY_NEXUS_FEATURES = [
   {
     id: '1',
-    title: 'Future Ready Learning',
-    description: 'AI-assisted personalized learning tracks designed to adapt to each scholar’s unique cognitive pace and potential.',
+    title: 'Academic Rigor & UNEB Prep',
+    description: 'Structured continuous assessment, Saturday revision clinics, and comprehensive past paper coaching for UCE and UACE success.',
     icon: 'Sparkles'
   },
   {
     id: '2',
-    title: 'Modern Classrooms',
-    description: 'Acoustically tuned, ergonomic smart spaces with interactive multi-touch visual boards and ambient glass design.',
+    title: 'Spacious Classrooms',
+    description: 'Well-ventilated, well-lit learning spaces equipped with digital projectors, comfortable desks, and interactive whiteboards.',
     icon: 'Monitor'
   },
   {
     id: '3',
-    title: 'STEM Laboratories',
-    description: 'Cutting-edge physics, chemistry, robotics, and biotech research labs outfitted with industrial-grade equipment.',
+    title: 'Science Laboratories',
+    description: 'Fully equipped Physics, Chemistry, and Biology laboratories for hands-on UNEB practical examinations and scientific experiments.',
     icon: 'FlaskConical'
   },
   {
     id: '4',
-    title: 'Digital Library',
-    description: 'Over 150,000 digital titles, JSTOR academic research databases, and quiet glass pods for deep focus studying.',
+    title: 'Well-Stocked Library & ICT Lab',
+    description: 'Extensive physical text books, UNEB past papers collection, and a high-speed computer lab for student research.',
     icon: 'BookOpen'
   },
   {
     id: '5',
-    title: 'Sports Excellence',
-    description: 'FIFA-standard turf pitch, heated 50m swimming pool, multi-purpose indoor sports complex, and professional coaching.',
+    title: 'Sports & Co-Curriculars',
+    description: 'Standard grass sports pitch, basketball & netball courts, volleyball, and active Music, Dance & Drama (MDD) clubs.',
     icon: 'Trophy'
   },
   {
     id: '6',
-    title: 'Character Development',
-    description: 'Mentorship circles, community service initiatives, debate societies, and global youth diplomacy forums.',
+    title: 'Holistic Boarding & Leadership',
+    description: 'Clean dormitories, 24/7 security & house wardens, nutritious balanced meals, Scripture Union, and Student Council leadership.',
     icon: 'HeartHandshake'
   }
 ];
@@ -109,35 +109,35 @@ export const WHY_NEXUS_FEATURES = [
 export const PROGRAMS: Program[] = [
   {
     id: 'o-level',
-    title: 'O Level Program',
-    code: 'UCE Syllabus & IGCSE',
-    tagline: 'Foundational Mastery & Critical Inquiry (Senior 1 - Senior 4)',
-    description: 'A rich four-year curriculum designed to foster deep analytical thinking, scientific inquiry, mathematical rigor, and linguistic fluency.',
+    title: 'O Level Program (UCE)',
+    code: 'Uganda Certificate of Education (UNEB)',
+    tagline: 'Foundational Academic Rigor & Character Formation (Senior 1 - Senior 4)',
+    description: 'A comprehensive four-year curriculum based on the Revised Lower Secondary Curriculum by NCDC, fostering scientific inquiry, mathematical problem solving, ICT competence, and practical skills.',
     duration: '4 Years (S1 - S4)',
     icon: 'BookMarked',
     highlights: [
       'Comprehensive Core Sciences & Humanities',
-      'Integrated Coding & Computational Logic',
-      'Individual Academic Mentorship & Advisory',
-      'UNEB UCE & Cambridge Examination Prep'
+      'Hands-on Science Practical Experiments in Labs',
+      'ICT Computer Literacy & Projects',
+      'UNEB UCE Examination Preparation & Revision Clinics'
     ],
-    subjects: ['Mathematics', 'Physics', 'Chemistry', 'Biology', 'English Language', 'ICT & Computer Studies', 'Geography', 'History', 'Entrepreneurship', 'Fine Art']
+    subjects: ['Mathematics', 'Physics', 'Chemistry', 'Biology', 'English Language', 'ICT & Computer Studies', 'Geography', 'History', 'Entrepreneurship', 'Kiswahili', 'Fine Art']
   },
   {
     id: 'a-level',
-    title: 'A Level Program',
-    code: 'UACE Syllabus & International A-Levels',
-    tagline: 'Specialized Advanced Rigor (Senior 5 - Senior 6)',
-    description: 'Rigorous two-year pre-university specialization preparing scholars for high-tier medical, engineering, law, technology, and business faculties worldwide.',
+    title: 'A Level Program (UACE)',
+    code: 'Uganda Advanced Certificate of Education (UNEB)',
+    tagline: 'Specialized Pre-University Academic Excellence (Senior 5 - Senior 6)',
+    description: 'Rigorous two-year specialization preparing scholars for top university degree programs in Medicine, Engineering, Law, Computing, Education, and Commerce.',
     duration: '2 Years (S5 - S6)',
     icon: 'GraduationCap',
     highlights: [
-      'PCM, BCM, HEG, MEG, PEM & Arts Combinations',
-      'Pre-University Research Thesis Project',
-      'SAT, IELTS & Ivy League Admissions Support',
-      '100% University Placement Record'
+      'PCM, BCM, PEM, HEG, MEG, LEG & Arts Combinations',
+      'Dedicated Science Practical Laboratories & Field Work',
+      'Career Guidance & University Application Support (PUJO)',
+      'High Government Sponsorship University Pass Rates'
     ],
-    subjects: ['Physics (P)', 'Chemistry (C)', 'Mathematics (M)', 'Biology (B)', 'Economics (E)', 'Geography (G)', 'Literature in English (L)', 'Sub-Math & General Paper']
+    subjects: ['Physics (P)', 'Chemistry (C)', 'Mathematics (M)', 'Biology (B)', 'Economics (E)', 'Geography (G)', 'History (H)', 'Literature in English (L)', 'Sub-Math & General Paper']
   }
 ];
 
@@ -145,42 +145,42 @@ export const TEACHERS: Teacher[] = [
   {
     id: '1',
     name: 'Dr. Sarah Nabwire',
-    role: 'Head of Sciences & STEM Director',
-    subject: 'Advanced Physics & Applied Mechanics',
-    qualification: 'Ph.D. Applied Physics (Imperial College London), M.Sc (Makerere)',
-    experience: '16 Years Teaching Experience',
+    role: 'Head of Science Department',
+    subject: 'Advanced Physics & Applied Mathematics',
+    qualification: 'M.Sc Physics (Makerere University), B.Sc Ed (Kyambogo)',
+    experience: '16 Years Teaching Experience & UNEB Senior Examiner',
     image: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=800&auto=format&fit=crop',
-    bio: 'Pioneer in physics pedagogy who has guided over 300 students to straight A distinctions in UACE and International A-Levels.'
+    bio: 'Experienced physics educator who has guided hundreds of candidates to distinction Division 1 scores in UCE and UACE national examinations.'
   },
   {
     id: '2',
-    name: 'Prof. David Okello',
+    name: 'Mr. David Okello',
     role: 'Dean of Academics & Mathematics Lead',
-    subject: 'Pure & Applied Mathematics',
-    qualification: 'M.Sc. Pure Mathematics (Cambridge University), B.Ed First Class',
-    experience: '18 Years Teaching Experience',
+    subject: 'Pure & Applied Mathematics / Sub-Math',
+    qualification: 'M.Ed Curriculum Studies (Makerere University), B.Sc Education',
+    experience: '18 Years Teaching & Academic Management',
     image: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=800&auto=format&fit=crop',
-    bio: 'Renowned mathematics author whose analytical problem-solving methodologies make complex calculus engaging and intuitive.'
+    bio: 'Renowned mathematics teacher whose analytical problem-solving methods make calculus and trigonometry accessible and enjoyable.'
   },
   {
     id: '3',
     name: 'Ms. Grace Akello',
-    role: 'Head of ICT & Computer Science',
-    subject: 'Software Engineering & AI',
-    qualification: 'M.Sc Computer Science (MIT), B.Sc Software Engineering',
-    experience: '12 Years Tech Industry & Academia',
+    role: 'Head of ICT & Computer Studies',
+    subject: 'Computer Studies & Subsidiary ICT',
+    qualification: 'B.Sc Computer Science & Information Technology (Kyambogo)',
+    experience: '10 Years ICT Education Lead',
     image: 'https://images.unsplash.com/photo-1580894732413-a923649646b9?q=80&w=800&auto=format&fit=crop',
-    bio: 'Former Google Silicon Valley engineer spearheading Nexus Academy’s AI Literacy initiative and global hackathon team.'
+    bio: 'Spearheading digital literacy, computer practical skills, and software skills for O-Level and A-Level students.'
   },
   {
     id: '4',
     name: 'Mr. Emmanuel Kato',
     role: 'Head of Humanities & Literature',
-    subject: 'World Literature & General Paper',
-    qualification: 'M.A. Comparative Literature (Oxford University)',
-    experience: '14 Years Teaching Experience',
+    subject: 'Literature in English & General Paper',
+    qualification: 'M.A. Literature (Makerere University), B.A. Education',
+    experience: '14 Years Teaching & Debate Patron',
     image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop',
-    bio: 'Award-winning orator and literary critic dedicated to cultivating articulate, confident debaters and expressive writers.'
+    bio: 'Seasoned debater and literary patron dedicated to developing articulate speakers, essay writers, and confident student leaders.'
   }
 ];
 
@@ -192,7 +192,7 @@ export const TESTIMONIALS: Testimonial[] = [
     name: 'Dr. Arthur Mukasa',
     role: 'Parent of Alumni',
     avatar: '',
-    comment: 'Nexus Academy helped my daughter build confidence and strong academic skills. The guidance provided was clear and supportive.',
+    comment: 'Nexus Academy provided disciplined study habits and excellent academic mentoring for my daughter. She qualified for Medicine at Makerere University on government sponsorship.',
     rating: 5,
     year: 'Class of 2024'
   },
@@ -201,7 +201,7 @@ export const TESTIMONIALS: Testimonial[] = [
     name: 'Patricia Namubiru',
     role: 'Head Girl & Top UCE Graduate',
     avatar: '',
-    comment: 'The dedicated teachers and modern study spaces gave me every tool to achieve strong results. Nexus is a great environment.',
+    comment: 'The dedicated teachers, well-equipped science laboratories, and supportive boarding life gave me every tool to achieve 8 aggregates in UCE.',
     rating: 5,
     year: 'Senior 4 Graduate'
   },
@@ -210,7 +210,7 @@ export const TESTIMONIALS: Testimonial[] = [
     name: 'Eng. Timothy Tumusiime',
     role: 'Alumni',
     avatar: '',
-    comment: 'The computer studies and science activities at Nexus gave me a solid background for my engineering degree.',
+    comment: 'The ICT and science training at Nexus gave me a firm foundation for my Civil Engineering degree.',
     rating: 5,
     year: 'Class of 2020'
   }
@@ -219,30 +219,30 @@ export const TESTIMONIALS: Testimonial[] = [
 export const ADMISSION_STEPS: AdmissionStep[] = [
   {
     stepNumber: 1,
-    title: 'Online Application',
-    description: 'Complete the online application form with previous academic records.',
-    detail: 'Simple and fast. Upload PLE, UCE, or equivalent report cards.',
+    title: 'Application Submission',
+    description: 'Fill the online application form with candidate details and academic records.',
+    detail: 'Simple and fast. Attach PLE Result Slip for S1 or UCE Result Slip for S5 entry.',
     icon: 'FileEdit'
   },
   {
     stepNumber: 2,
-    title: 'Assessment & Interview',
-    description: 'Attend an interactive assessment and student interview.',
-    detail: 'Helps us understand student learning strengths and interests.',
+    title: 'Interview & Guidance',
+    description: 'Candidate interview and subject combination advisory session.',
+    detail: 'Helps select the best combination aligned with the student’s career aspirations.',
     icon: 'UserCheck'
   },
   {
     stepNumber: 3,
-    title: 'Official Acceptance',
-    description: 'Receive your formal admission letter and welcome packet.',
-    detail: 'Includes fee structure, boarding details, and uniform information.',
+    title: 'Admission Letter',
+    description: 'Receive your official admission letter and requirements package.',
+    detail: 'Includes fee structure, boarding requirements list, uniform guidelines, and bank accounts.',
     icon: 'MailCheck'
   },
   {
     stepNumber: 4,
-    title: 'Begin Learning',
-    description: 'Join the school community and start your academic journey.',
-    detail: 'Includes orientation week and student guidance.',
+    title: 'Reporting & Orientation',
+    description: 'Report to school for term commencement and orientation.',
+    detail: 'Dormitory allocation, textbook issuance, and welcoming student orientation week.',
     icon: 'Rocket'
   }
 ];
@@ -250,12 +250,12 @@ export const ADMISSION_STEPS: AdmissionStep[] = [
 export const UPCOMING_EVENTS: EventItem[] = [
   {
     id: 'evt_1',
-    title: 'Annual Science & STEM Technology Fair',
+    title: 'Annual Inter-School Science & Innovation Fair',
     date: 'August 15, 2026',
     time: '09:00 AM - 04:00 PM',
-    location: 'Nexus Main Auditorium & STEM Labs',
+    location: 'Nexus Main Assembly Hall & Science Block',
     category: 'Academics',
-    description: 'Students showcase robotics, AI projects, and scientific research. Parents and visitors are invited.',
+    description: 'Students present practical chemistry experiments, physics models, and ICT software solutions. Parents and guest schools are welcome.',
     image: ''
   },
   {
@@ -265,17 +265,17 @@ export const UPCOMING_EVENTS: EventItem[] = [
     time: '10:00 AM',
     location: 'Assembly Hall',
     category: 'Examinations',
-    description: 'Official candidate orientation and briefing for upcoming National UNEB Mock Examinations.',
+    description: 'Official candidate orientation and briefing for upcoming National UNEB Joint Mock Examinations.',
     image: ''
   },
   {
     id: 'evt_3',
-    title: 'Inter-House Sports & Athletics Championship',
+    title: 'Inter-House Sports & MDD Gala',
     date: 'September 20, 2026',
     time: '08:00 AM - 05:00 PM',
-    location: 'Nexus Sports Complex',
+    location: 'Nexus Sports Grounds',
     category: 'Sports',
-    description: 'Track events, football finals, and swimming competition across school houses.',
+    description: 'Athletics, football finals, netball matches, and Music, Dance & Drama performances across school houses.',
     image: ''
   }
 ];
@@ -285,55 +285,55 @@ export const INITIAL_GALLERY_ITEMS: GalleryItem[] = [];
 export const NEWS_ARTICLES: NewsItem[] = [
   {
     id: 'news_1',
-    title: 'Nexus Academy Scholars Record Top National UNEB Distinction Performance',
+    title: 'Nexus Academy Scholars Record Top UNEB Distinction Performance in UCE & UACE',
     date: 'July 28, 2026',
     author: 'Academic Registrar',
     category: 'Academics',
     image: '',
-    summary: 'Over 94% of Senior 4 candidates scored Division 1 in national examinations, establishing Nexus as a top academic institution.',
-    content: 'Nexus Academy candidates achieved stellar performance in the latest UCE and UACE National Examinations. Science subjects recorded an unprecedented 98% distinction rate, led by candidates in Physics, Pure Mathematics, and Computer Studies.'
+    summary: 'Over 94% of Senior 4 candidates scored Division 1 in national examinations, establishing Nexus among top performing schools in Uganda.',
+    content: 'Nexus Academy candidates achieved outstanding results in the latest UCE and UACE National Examinations. Science subjects recorded impressive distinction rates in Physics, Chemistry, Biology, and Mathematics.'
   },
   {
     id: 'news_2',
-    title: 'Commissioning of New Future-Ready AI & Robotics Facility',
+    title: 'Commissioning of New Modern Computer Laboratory & Science Annex',
     date: 'August 02, 2026',
-    author: 'Director of Innovation',
-    category: 'STEM Innovation',
+    author: 'Board of Governors',
+    category: 'Facilities',
     image: '',
-    summary: 'State-of-the-art AI workstations and 3D prototyping labs open to Senior 1 to Senior 6 scholars.',
-    content: 'The Board of Governors is pleased to unveil the new Nexus STEM Complex. The facility houses 120 high-performance workstations, robotics arenas, and high-speed satellite connectivity.'
+    summary: 'Fully equipped computer room with high-speed internet connectivity and new laboratory apparatus commissioned for students.',
+    content: 'The Board of Governors is pleased to announce the opening of the new Computer Lab and Science Annex. The facility accommodates up to 80 students simultaneously for UNEB practical sessions.'
   }
 ];
 
 export const FAQS: FaqItem[] = [
   {
     id: '1',
-    question: 'What curriculums are offered at Nexus Academy?',
-    answer: 'Nexus Academy offers dual pathways: the national UNEB Curriculum (UCE & UACE) and International Cambridge Curriculum (IGCSE & A-Levels), enhanced with our proprietary Future-Ready STEM & AI leadership modules.',
+    question: 'What curriculum does Nexus Academy follow?',
+    answer: 'Nexus Academy strictly follows the National UNEB Curriculum for both Lower Secondary (UCE - Senior 1 to Senior 4) and Upper Secondary (UACE - Senior 5 to Senior 6), enhanced with practical computer literacy and life skills.',
     category: 'Academics'
   },
   {
     id: '2',
     question: 'How do I access and verify student UNEB / Mock exam results?',
-    answer: 'You can use our integrated online UNEB & Exam Results Portal directly on this website! Simply navigate to "Results Portal" from the top drop-down menu, enter the candidate’s Index Number or Name, and view or print verified transcripts synced in real-time.',
+    answer: 'You can use our integrated online UNEB & Exam Results Portal directly on this website! Simply click "Check UNEB Results", enter the candidate’s Index Number (e.g., U0001/001), and view verified result slips.',
     category: 'Results & Examinations'
   },
   {
     id: '3',
     question: 'Can examination results be synced live from Google Forms or Google Sheets?',
-    answer: 'Yes! Our school administration portal features an instant Google Sheets / CSV sync bridge. Subject heads can update marks in a Google Sheet, and results reflect live in the student search portal within seconds.',
+    answer: 'Yes! Our school administration dashboard features a Google Sheets / CSV sync bridge. Subject teachers and DOS can update marks in a spreadsheet, reflecting instantly on the portal.',
     category: 'Results & Examinations'
   },
   {
     id: '4',
-    question: 'What are the boarding facilities and security measures like?',
-    answer: 'Our residential dormitories feature climate-controlled glass lounges, single/twin en-suite rooms, 24/7 biometric access, professional house parents, on-site medical staff, and organic chef-curated nutrition.',
+    question: 'What are the boarding facilities and welfare like?',
+    answer: 'Our boarding facilities offer clean spacious dormitories, 24/7 security with perimeter fencing, matrons and patrons, standby power generator, clean water supply, on-site sickbay with a resident nurse, and balanced nutritious meals (posho, beans, matooke, rice, and fresh vegetables).',
     category: 'Boarding & Life'
   },
   {
     id: '5',
-    question: 'Are scholarships or financial aid available?',
-    answer: 'Yes. We offer Merit-Based Excellence Scholarships for top PLE / UCE achievers (up to 100% tuition coverage) as well as STEM & Sports Talent Bursaries.',
+    question: 'Are scholarships or bursaries available?',
+    answer: 'Yes. We offer Academic Merit Scholarships for top PLE achievers entering S1 (4 to 6 aggregates) and top UCE achievers entering S5, as well as talent bursaries in sports and MDD.',
     category: 'Admissions & Fees'
   }
 ];
@@ -393,7 +393,7 @@ export const INITIAL_STUDENT_RESULTS: StudentResult[] = [
     combinationOrStream: 'PCM / Sub-Math (Physics, Chemistry, Mathematics)',
     aggregatesOrPoints: '20 Points (A, A, A, 1, 1)',
     divisionOrClass: 'Principal Pass Division (Maximum Score)',
-    headteacherRemark: 'Admitted to MIT & Harvard Engineering Faculty.',
+    headteacherRemark: 'Admitted to Makerere University (B.Sc Electrical Engineering - Government Sponsorship).',
     verifiedStatus: true,
     subjects: [
       { code: 'P510', name: 'PHYSICS', grade: 'A', scoreName: 'Principal A (6 Points)' },
@@ -412,7 +412,7 @@ export const INITIAL_STUDENT_RESULTS: StudentResult[] = [
     combinationOrStream: 'BCM / Sub-Math (Biology, Chemistry, Mathematics)',
     aggregatesOrPoints: '19 Points (A, A, B, 1, 1)',
     divisionOrClass: 'Principal Pass Division',
-    headteacherRemark: 'Top candidates for Medicine & Surgery Faculty placement.',
+    headteacherRemark: 'Admitted to Makerere University College of Health Sciences (Medicine & Surgery).',
     verifiedStatus: true,
     subjects: [
       { code: 'P530', name: 'BIOLOGY', grade: 'A', scoreName: 'Principal A (6 Points)' },

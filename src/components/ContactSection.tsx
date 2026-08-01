@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MapPin, Phone, Mail, Clock, Send, CheckCircle2 } from 'lucide-react';
+import { MapPin, Phone, Mail, Clock, Send, CheckCircle2, MessageSquare } from 'lucide-react';
 
 export const ContactSection: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -13,7 +13,14 @@ export const ContactSection: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.name) return;
     setSubmitted(true);
+
+    // Open WhatsApp directly with inquiry text
+    const text = encodeURIComponent(
+      `Hello Nexus Academy Admissions,\n\nOfficial Inquiry from Website:\nName: ${formData.name}\nEmail: ${formData.email || 'N/A'}\nPhone: ${formData.phone || 'N/A'}\nProgram Interest: ${formData.programInterest}\nMessage: ${formData.message || 'General Inquiry'}`
+    );
+    window.open(`https://wa.me/256772100200?text=${text}`, '_blank');
   };
 
   return (
@@ -52,8 +59,8 @@ export const ContactSection: React.FC = () => {
                 <div className="flex items-start gap-3">
                   <Phone className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                   <div>
-                    <span className="text-slate-400 block text-[10px] uppercase">Phone Hotline</span>
-                    <span className="text-[#0B1A30]">+256 (0) 414 555 123 / +256 (0) 772 100 200</span>
+                    <span className="text-slate-400 block text-[10px] uppercase">Phone & WhatsApp Hotline</span>
+                    <span className="text-[#0B1A30]">+256 (0) 772 100 200 / +256 (0) 414 555 123</span>
                   </div>
                 </div>
 
@@ -73,6 +80,17 @@ export const ContactSection: React.FC = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Direct WhatsApp Quick Chat Button */}
+              <a
+                href="https://wa.me/256772100200?text=Hello%20Nexus%20Academy%20Admissions%2C%20I%20have%20an%20inquiry%20regarding%20enrolment."
+                target="_blank"
+                rel="noreferrer"
+                className="w-full py-3 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs transition-colors flex items-center justify-center gap-2 shadow-sm"
+              >
+                <MessageSquare className="w-4 h-4 text-emerald-200" />
+                <span>Chat Directly on WhatsApp (+256 772 100 200)</span>
+              </a>
             </div>
           </div>
 
@@ -80,13 +98,25 @@ export const ContactSection: React.FC = () => {
           <div className="lg:col-span-7">
             <div className="bg-slate-50 border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm">
               <h3 className="text-xl font-black text-[#0B1A30] mb-2">Send an Official Inquiry</h3>
-              <p className="text-xs text-slate-600 mb-6">Our admissions team responds within 24 business hours.</p>
+              <p className="text-xs text-slate-600 mb-6">Submitting will automatically launch a direct WhatsApp chat with our admissions office.</p>
 
               {submitted ? (
-                <div className="p-8 bg-emerald-50 border border-emerald-300 rounded-2xl text-center space-y-3">
+                <div className="p-8 bg-emerald-50 border border-emerald-300 rounded-2xl text-center space-y-4">
                   <CheckCircle2 className="w-12 h-12 text-emerald-600 mx-auto" />
-                  <h4 className="text-lg font-black text-emerald-900">Inquiry Received</h4>
-                  <p className="text-xs text-emerald-800">Thank you for reaching out to Nexus Academy. Our admissions dean will contact you shortly.</p>
+                  <h4 className="text-lg font-black text-emerald-900">Inquiry Sent to WhatsApp</h4>
+                  <p className="text-xs text-emerald-800">
+                    Thank you for reaching out to Nexus Academy! A WhatsApp chat window has opened for immediate response from our admissions dean.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSubmitted(false);
+                      setFormData({ name: '', email: '', phone: '', programInterest: 'O Level', message: '' });
+                    }}
+                    className="px-4 py-2 bg-emerald-700 text-white font-bold text-xs rounded-xl hover:bg-emerald-800"
+                  >
+                    Send Another Message
+                  </button>
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-4 text-xs font-bold text-slate-700">
@@ -104,10 +134,9 @@ export const ContactSection: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block mb-1">Email Address *</label>
+                      <label className="block mb-1">Email Address</label>
                       <input
                         type="email"
-                        required
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                         placeholder="joseph@example.com"
@@ -118,9 +147,10 @@ export const ContactSection: React.FC = () => {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block mb-1">Phone Number</label>
+                      <label className="block mb-1">Phone Number *</label>
                       <input
                         type="tel"
+                        required
                         value={formData.phone}
                         onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                         placeholder="+256 700 000 000"
@@ -156,10 +186,10 @@ export const ContactSection: React.FC = () => {
 
                   <button
                     type="submit"
-                    className="w-full py-3 rounded-xl bg-[#0B1A30] text-white text-xs font-black hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 shadow"
+                    className="w-full py-3.5 rounded-xl bg-[#0B1A30] text-white text-xs font-black hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 shadow"
                   >
-                    <Send className="w-4 h-4 text-amber-400" />
-                    <span>Submit Inquiry</span>
+                    <MessageSquare className="w-4 h-4 text-emerald-400" />
+                    <span>Submit Inquiry & Open WhatsApp</span>
                   </button>
                 </form>
               )}
