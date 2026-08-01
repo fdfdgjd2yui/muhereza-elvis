@@ -98,14 +98,14 @@ export const ContactSection: React.FC = () => {
           <div className="lg:col-span-7">
             <div className="bg-slate-50 border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm">
               <h3 className="text-xl font-black text-[#0B1A30] mb-2">Send an Official Inquiry</h3>
-              <p className="text-xs text-slate-600 mb-6">Submitting will automatically launch a direct WhatsApp chat with our admissions office.</p>
+              <p className="text-xs text-slate-600 mb-6">Fill out the form below to reach our admissions desk.</p>
 
               {submitted ? (
                 <div className="p-8 bg-emerald-50 border border-emerald-300 rounded-2xl text-center space-y-4">
                   <CheckCircle2 className="w-12 h-12 text-emerald-600 mx-auto" />
-                  <h4 className="text-lg font-black text-emerald-900">Inquiry Sent to WhatsApp</h4>
+                  <h4 className="text-lg font-black text-emerald-900">Inquiry Submitted</h4>
                   <p className="text-xs text-emerald-800">
-                    Thank you for reaching out to Nexus Academy! A WhatsApp chat window has opened for immediate response from our admissions dean.
+                    Thank you for reaching out to Nexus Academy! Our admissions desk will respond to your inquiry shortly.
                   </p>
                   <button
                     type="button"
@@ -188,8 +188,8 @@ export const ContactSection: React.FC = () => {
                     type="submit"
                     className="w-full py-3.5 rounded-xl bg-[#0B1A30] text-white text-xs font-black hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 shadow"
                   >
-                    <MessageSquare className="w-4 h-4 text-emerald-400" />
-                    <span>Submit Inquiry & Open WhatsApp</span>
+                    <Send className="w-4 h-4 text-amber-400" />
+                    <span>Submit Inquiry</span>
                   </button>
                 </form>
               )}

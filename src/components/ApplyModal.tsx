@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Send, CheckCircle2, Shield, Upload, MessageSquare } from 'lucide-react';
+import { X, Send, CheckCircle2, Shield, Upload, FileCheck, Trash2 } from 'lucide-react';
 
 interface ApplyModalProps {
   isOpen: boolean;
@@ -8,6 +8,7 @@ interface ApplyModalProps {
 
 export const ApplyModal: React.FC<ApplyModalProps> = ({ isOpen, onClose }) => {
   const [submitted, setSubmitted] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [formData, setFormData] = useState({
     studentName: '',
     dob: '',
@@ -23,15 +24,27 @@ export const ApplyModal: React.FC<ApplyModalProps> = ({ isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+    }
+  };
+
+  const removeFile = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSelectedFile(null);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitted(true);
+  };
 
-    const ref = `NX-2026-${Math.floor(1000 + Math.random() * 9000)}`;
-    const text = encodeURIComponent(
-      `Hello Nexus Academy Admissions,\n\nNew Admission Application Submission:\nRef: ${ref}\nCandidate Name: ${formData.studentName}\nDOB: ${formData.dob}\nProgram: ${formData.program}\nBoarding Preference: ${formData.boardingPreference}\nParent Name: ${formData.parentName}\nParent Phone: ${formData.parentPhone}\nParent Email: ${formData.parentEmail}`
-    );
-    window.open(`https://wa.me/256772100200?text=${text}`, '_blank');
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' bytes';
+    else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1048576).toFixed(1) + ' MB';
   };
 
   return (
@@ -58,7 +71,7 @@ export const ApplyModal: React.FC<ApplyModalProps> = ({ isOpen, onClose }) => {
             </div>
 
             <p className="text-xs text-slate-600">
-              Submit your candidate's preliminary application. Submitting will automatically connect you with our admissions team on WhatsApp.
+              Submit your candidate's preliminary application form for review by our admissions board.
             </p>
 
             <div className="space-y-4 pt-2 border-t border-slate-200">
@@ -159,18 +172,51 @@ export const ApplyModal: React.FC<ApplyModalProps> = ({ isOpen, onClose }) => {
               </div>
             </div>
 
-            <div className="p-4 rounded-xl bg-slate-50 border border-dashed border-slate-300 text-center space-y-1">
-              <Upload className="w-5 h-5 text-amber-600 mx-auto" />
-              <p className="text-xs font-bold text-[#0B1A30]">Attach Academic Transcript (PLE / UCE Result Slip)</p>
-              <p className="text-[10px] text-slate-500">PDF, PNG, JPG up to 10MB accepted</p>
+            {/* Functional Attach Transcript Section */}
+            <div>
+              <input
+                type="file"
+                id="transcript-file-input"
+                className="hidden"
+                accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+                onChange={handleFileChange}
+              />
+              
+              {!selectedFile ? (
+                <label
+                  htmlFor="transcript-file-input"
+                  className="p-4 rounded-xl bg-slate-50 border border-dashed border-slate-300 hover:border-sky-500 hover:bg-sky-50/50 transition-all cursor-pointer block text-center space-y-1"
+                >
+                  <Upload className="w-5 h-5 text-amber-600 mx-auto" />
+                  <p className="text-xs font-bold text-[#0B1A30]">Attach Academic Transcript (PLE / UCE Result Slip)</p>
+                  <p className="text-[10px] text-slate-500">Click to browse file (PDF, PNG, JPG up to 10MB)</p>
+                </label>
+              ) : (
+                <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-300 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-3">
+                    <FileCheck className="w-6 h-6 text-emerald-600 shrink-0" />
+                    <div>
+                      <p className="font-bold text-emerald-950 truncate max-w-[240px] sm:max-w-xs">{selectedFile.name}</p>
+                      <p className="text-[10px] text-emerald-700">{formatFileSize(selectedFile.size)} • Attached Successfully</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={removeFile}
+                    className="p-1.5 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-800 transition-colors"
+                    title="Remove attached file"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
             </div>
 
             <button
               type="submit"
               className="w-full py-4 rounded-xl bg-[#0B1A30] text-white font-extrabold text-sm shadow-xl hover:bg-slate-800 transition-all flex items-center justify-center gap-2"
             >
-              <MessageSquare className="w-4 h-4 text-emerald-400" />
-              <span>Submit Application & Open WhatsApp</span>
+              <Send className="w-4 h-4 text-amber-400" />
+              <span>Submit Application</span>
             </button>
           </form>
         ) : (
@@ -180,11 +226,12 @@ export const ApplyModal: React.FC<ApplyModalProps> = ({ isOpen, onClose }) => {
             </div>
             <h3 className="text-2xl font-black text-[#0B1A30]">Application Submitted!</h3>
             <p className="text-xs text-slate-600 max-w-md mx-auto">
-              Your application details have been submitted and sent to our official WhatsApp helpline for instant verification.
+              Your candidate application details {selectedFile ? 'and attached transcript ' : ''}have been successfully submitted to our admissions desk.
             </p>
             <button
               onClick={() => {
                 setSubmitted(false);
+                setSelectedFile(null);
                 onClose();
               }}
               className="px-6 py-2.5 rounded-xl bg-[#0B1A30] text-white font-bold text-xs hover:bg-slate-800"

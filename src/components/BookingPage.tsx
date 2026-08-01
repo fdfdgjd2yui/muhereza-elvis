@@ -249,7 +249,7 @@ export const BookingPage: React.FC<BookingPageProps> = ({ onBack, onOpenApply })
             <div className="p-4 rounded-2xl bg-sky-50 border border-sky-200 text-xs text-sky-900 flex items-center gap-3 font-medium">
               <ShieldCheck className="w-5 h-5 text-sky-600 shrink-0" />
               <span>
-                Submitting this form will automatically open a pre-filled WhatsApp inquiry line with our admissions director for instant confirmation.
+                Submitting this form registers your visit request with our admissions office for confirmation.
               </span>
             </div>
 
@@ -257,8 +257,8 @@ export const BookingPage: React.FC<BookingPageProps> = ({ onBack, onOpenApply })
               type="submit"
               className="w-full py-4 rounded-2xl bg-[#0B1A30] text-white font-extrabold text-base shadow-xl hover:bg-slate-800 transition-all flex items-center justify-center gap-2"
             >
-              <MessageSquare className="w-5 h-5 text-emerald-400" />
-              <span>Confirm Visit & Open WhatsApp Inquiry</span>
+              <Send className="w-5 h-5 text-amber-400" />
+              <span>Submit Booking</span>
             </button>
 
           </form>
@@ -271,7 +271,7 @@ export const BookingPage: React.FC<BookingPageProps> = ({ onBack, onOpenApply })
 
             <div className="space-y-2">
               <span className="text-xs font-bold text-emerald-700 uppercase tracking-widest">
-                Booking Reservation Generated & Sent to WhatsApp!
+                Booking Reservation Confirmed
               </span>
               <h2 className="text-3xl font-black text-[#0B1A30] heading-font">
                 We Look Forward to Welcoming You
