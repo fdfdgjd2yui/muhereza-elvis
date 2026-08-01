@@ -214,25 +214,25 @@ export const SearchModal: React.FC<SearchModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="glass-card w-full max-w-2xl rounded-3xl p-6 border border-white/20 shadow-2xl relative">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white w-full max-w-2xl rounded-3xl p-6 border border-slate-200 shadow-2xl relative text-slate-900">
         
         {/* Search Header Form */}
-        <form onSubmit={handleFormSubmit} className="flex items-center gap-3 border-b border-white/15 pb-4">
-          <Search className="w-5 h-5 text-[#D4AF37]" />
+        <form onSubmit={handleFormSubmit} className="flex items-center gap-3 border-b border-slate-200 pb-4">
+          <Search className="w-5 h-5 text-sky-600" />
           <input
             type="text"
             autoFocus
             placeholder="Search website: 'About', 'Admissions', 'Gallery', 'Events', 'Contact Us'..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-full bg-transparent text-white text-sm focus:outline-none placeholder-gray-400"
+            className="w-full bg-transparent text-slate-900 text-sm focus:outline-none placeholder-slate-400"
           />
           {query && (
             <button
               type="button"
               onClick={() => setQuery('')}
-              className="text-xs text-gray-400 hover:text-white px-2 py-1"
+              className="text-xs text-slate-400 hover:text-slate-600 px-2 py-1"
             >
               Clear
             </button>
@@ -240,7 +240,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors"
+            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -249,7 +249,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
         {/* Quick Suggestion Chips when query is short */}
         {!cleanQuery && (
           <div className="mt-4 pb-2">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
               Popular Website Sections
             </p>
             <div className="flex flex-wrap gap-1.5">
@@ -273,7 +273,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                       onNavigateToSection(chip.id);
                     }
                   }}
-                  className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-sky-500/20 border border-white/10 hover:border-sky-400/40 text-xs text-sky-200 font-medium transition-all"
+                  className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-sky-100 border border-slate-200 hover:border-sky-300 text-xs text-slate-700 font-medium transition-all"
                 >
                   {chip.label} →
                 </button>
@@ -287,7 +287,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
           {/* Main Website Sections */}
           {matchedSections.length > 0 && (
             <div className="space-y-1.5">
-              <p className="text-[10px] font-bold text-[#D4AF37] uppercase tracking-wider">
+              <p className="text-[10px] font-bold text-sky-800 uppercase tracking-wider">
                 Public Website Pages & Sections
               </p>
               {matchedSections.map((sec) => {
@@ -297,23 +297,23 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                     key={sec.id}
                     type="button"
                     onClick={() => handleSelectSection(sec)}
-                    className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-white/10 border border-transparent hover:border-white/15 transition-all text-left group"
+                    className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-slate-50 border border-slate-100 hover:border-slate-200 transition-all text-left group"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-xl bg-sky-500/15 border border-sky-400/30 text-sky-300 group-hover:scale-105 transition-transform">
+                      <div className="p-2 rounded-xl bg-sky-50 border border-sky-200 text-sky-700 group-hover:scale-105 transition-transform">
                         <Icon className="w-4 h-4" />
                       </div>
                       <div>
-                        <div className="font-bold text-white text-sm group-hover:text-sky-300 transition-colors flex items-center gap-2">
+                        <div className="font-bold text-[#0B1A30] text-sm group-hover:text-sky-800 transition-colors flex items-center gap-2">
                           {sec.title}
-                          <span className="text-[10px] px-2 py-0.5 rounded bg-white/10 text-gray-300 font-mono">
+                          <span className="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-mono">
                             {sec.category}
                           </span>
                         </div>
-                        <div className="text-xs text-gray-400 line-clamp-1">{sec.subtitle}</div>
+                        <div className="text-xs text-slate-500 line-clamp-1">{sec.subtitle}</div>
                       </div>
                     </div>
-                    <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-sky-300 group-hover:translate-x-1 transition-all shrink-0" />
+                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-sky-700 group-hover:translate-x-1 transition-all shrink-0" />
                   </button>
                 );
               })}
@@ -323,7 +323,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
           {/* Academic Courses */}
           {matchedPrograms.length > 0 && (
             <div className="space-y-1 mt-3">
-              <p className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">
+              <p className="text-[10px] font-bold text-blue-700 uppercase tracking-wider">
                 Matching Academic Subjects
               </p>
               {matchedPrograms.map((p) => (
@@ -334,10 +334,10 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                     onClose();
                     onNavigateToSection('programs');
                   }}
-                  className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-white/10 text-left text-white"
+                  className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 text-left text-slate-800 border border-slate-100"
                 >
                   <span className="font-medium text-xs">{p.title} ({p.code})</span>
-                  <span className="text-xs text-sky-400">View Programs Section →</span>
+                  <span className="text-xs text-sky-700 font-semibold">View Programs Section →</span>
                 </button>
               ))}
             </div>
@@ -346,7 +346,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
           {/* Faculty Educators */}
           {matchedTeachers.length > 0 && (
             <div className="space-y-1 mt-3">
-              <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
+              <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">
                 Matching Teachers & Mentors
               </p>
               {matchedTeachers.map((t) => (
@@ -357,10 +357,10 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                     onClose();
                     onNavigateToSection('teachers');
                   }}
-                  className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-white/10 text-left text-white"
+                  className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 text-left text-slate-800 border border-slate-100"
                 >
                   <span className="font-medium text-xs">{t.name} - {t.subject}</span>
-                  <span className="text-xs text-emerald-400">View Faculty Section →</span>
+                  <span className="text-xs text-emerald-700 font-semibold">View Faculty Section →</span>
                 </button>
               ))}
             </div>
@@ -369,7 +369,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
           {/* Events */}
           {matchedEvents.length > 0 && (
             <div className="space-y-1 mt-3">
-              <p className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider">
+              <p className="text-[10px] font-bold text-cyan-700 uppercase tracking-wider">
                 Matching Campus Events
               </p>
               {matchedEvents.map((e) => (
@@ -380,27 +380,27 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                     onClose();
                     onNavigateToSection('events');
                   }}
-                  className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-white/10 text-left text-white"
+                  className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 text-left text-slate-800 border border-slate-100"
                 >
                   <span className="font-medium text-xs">{e.title}</span>
-                  <span className="text-xs text-cyan-400">View Events Section →</span>
+                  <span className="text-xs text-cyan-700 font-semibold">View Events Section →</span>
                 </button>
               ))}
             </div>
           )}
 
           {cleanQuery && matchedSections.length === 0 && matchedPrograms.length === 0 && matchedTeachers.length === 0 && (
-            <div className="p-6 text-center text-xs text-gray-400 glass-card rounded-2xl border border-white/10">
+            <div className="p-6 text-center text-xs text-slate-500 bg-slate-50 rounded-2xl border border-slate-200">
               No public website section matched "{query}". Try searching for 'About', 'Admissions', 'Gallery', 'Events', 'Contact Us', or 'Academics'.
             </div>
           )}
         </div>
 
         {/* Security Privacy Footer Note */}
-        <div className="mt-4 pt-3 border-t border-white/10 flex items-center gap-2.5 text-[11px] text-gray-400 bg-sky-500/5 p-3 rounded-2xl border border-sky-500/20">
-          <ShieldCheck className="w-4 h-4 text-sky-400 shrink-0" />
+        <div className="mt-4 pt-3 border-t border-slate-200 flex items-center gap-2.5 text-[11px] text-slate-600 bg-sky-50 p-3 rounded-2xl border border-sky-200">
+          <ShieldCheck className="w-4 h-4 text-sky-700 shrink-0" />
           <div>
-            <span className="font-bold text-sky-300">Student Privacy Notice: </span>
+            <span className="font-bold text-sky-900">Student Privacy Notice: </span>
             For security, individual examination results can only be queried on the dedicated{' '}
             <button
               type="button"
@@ -408,7 +408,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                 onClose();
                 onOpenResultsPage();
               }}
-              className="text-sky-300 underline font-bold hover:text-white"
+              className="text-sky-800 underline font-bold hover:text-sky-950"
             >
               Results Portal
             </button>{' '}

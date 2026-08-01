@@ -247,9 +247,63 @@ export const ADMISSION_STEPS: AdmissionStep[] = [
   }
 ];
 
-export const UPCOMING_EVENTS: EventItem[] = [];
+export const UPCOMING_EVENTS: EventItem[] = [
+  {
+    id: 'evt_1',
+    title: 'Annual Science & STEM Technology Fair',
+    date: 'August 15, 2026',
+    time: '09:00 AM - 04:00 PM',
+    location: 'Nexus Main Auditorium & STEM Labs',
+    category: 'Academics',
+    description: 'Students showcase robotics, AI projects, and scientific research. Parents and visitors are invited.',
+    image: ''
+  },
+  {
+    id: 'evt_2',
+    title: 'Senior 4 & Senior 6 UNEB Mocks Briefing',
+    date: 'September 2, 2026',
+    time: '10:00 AM',
+    location: 'Assembly Hall',
+    category: 'Examinations',
+    description: 'Official candidate orientation and briefing for upcoming National UNEB Mock Examinations.',
+    image: ''
+  },
+  {
+    id: 'evt_3',
+    title: 'Inter-House Sports & Athletics Championship',
+    date: 'September 20, 2026',
+    time: '08:00 AM - 05:00 PM',
+    location: 'Nexus Sports Complex',
+    category: 'Sports',
+    description: 'Track events, football finals, and swimming competition across school houses.',
+    image: ''
+  }
+];
 
-export const NEWS_ARTICLES: NewsItem[] = [];
+export const INITIAL_GALLERY_ITEMS: GalleryItem[] = [];
+
+export const NEWS_ARTICLES: NewsItem[] = [
+  {
+    id: 'news_1',
+    title: 'Nexus Academy Scholars Record Top National UNEB Distinction Performance',
+    date: 'July 28, 2026',
+    author: 'Academic Registrar',
+    category: 'Academics',
+    image: '',
+    summary: 'Over 94% of Senior 4 candidates scored Division 1 in national examinations, establishing Nexus as a top academic institution.',
+    content: 'Nexus Academy candidates achieved stellar performance in the latest UCE and UACE National Examinations. Science subjects recorded an unprecedented 98% distinction rate, led by candidates in Physics, Pure Mathematics, and Computer Studies.'
+  },
+  {
+    id: 'news_2',
+    title: 'Commissioning of New Future-Ready AI & Robotics Facility',
+    date: 'August 02, 2026',
+    author: 'Director of Innovation',
+    category: 'STEM Innovation',
+    image: '',
+    summary: 'State-of-the-art AI workstations and 3D prototyping labs open to Senior 1 to Senior 6 scholars.',
+    content: 'The Board of Governors is pleased to unveil the new Nexus STEM Complex. The facility houses 120 high-performance workstations, robotics arenas, and high-speed satellite connectivity.'
+  }
+];
 
 export const FAQS: FaqItem[] = [
   {

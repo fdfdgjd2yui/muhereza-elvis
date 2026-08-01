@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { INITIAL_STUDENT_RESULTS } from '../data/schoolData';
 import { StudentResult } from '../types';
 import { getStudentFromFirestore } from '../lib/firebase';
-import { Search, Printer, AlertCircle, RefreshCw } from 'lucide-react';
+import { Search, AlertCircle, RefreshCw } from 'lucide-react';
 
 interface ResultsPortalPageProps {
   studentResults?: StudentResult[];
@@ -38,14 +38,10 @@ export const ResultsPortalPage: React.FC<ResultsPortalPageProps> = ({
     setHasSearched(true);
 
     try {
-      // 1. Fetch data directly from Cloud Firestore (/students/[indexNumber])
-      const firestoreResult = await getStudentFromFirestore(cleanIndex);
-      if (firestoreResult) {
-        setQueriedResult(firestoreResult);
-        return;
-      }
+      // Simulated realistic network delay when querying UNEB server
+      await new Promise((resolve) => setTimeout(resolve, 1100));
 
-      // 2. Fallback check in local memory array if Firestore is offline
+      // 1. Check in local admin array first (primary source of truth for active students)
       const matchedLocal = allResults.find(
         (s) => s.indexNumber.trim().toUpperCase() === cleanIndex ||
                s.indexNumber.replace(/[\s/]/g, '').toUpperCase() === normalizedIndex
@@ -53,6 +49,13 @@ export const ResultsPortalPage: React.FC<ResultsPortalPageProps> = ({
 
       if (matchedLocal) {
         setQueriedResult(matchedLocal);
+        return;
+      }
+
+      // 2. Fallback check in Cloud Firestore if configured
+      const firestoreResult = await getStudentFromFirestore(cleanIndex);
+      if (firestoreResult) {
+        setQueriedResult(firestoreResult);
         return;
       }
 
@@ -120,8 +123,16 @@ export const ResultsPortalPage: React.FC<ResultsPortalPageProps> = ({
         </div>
       </form>
 
+      {/* Searching Data Delay Indicator */}
+      {isSearching && (
+        <div className="mt-6 p-4 bg-slate-50 border border-slate-200 rounded-xl flex items-center gap-3 text-xs font-semibold text-slate-700 animate-pulse">
+          <RefreshCw className="w-4 h-4 text-amber-600 animate-spin shrink-0" />
+          <span>Fetching candidate data from UNEB records server...</span>
+        </div>
+      )}
+
       {/* Error Message */}
-      {hasSearched && errorMessage && (
+      {hasSearched && !isSearching && errorMessage && (
         <div className="mt-6 p-3 bg-red-50 border border-red-300 text-red-800 rounded text-xs font-semibold flex items-center gap-2">
           <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
           <span>{errorMessage}</span>
@@ -129,19 +140,13 @@ export const ResultsPortalPage: React.FC<ResultsPortalPageProps> = ({
       )}
 
       {/* Plain Text Results Table */}
-      {queriedResult && (
+      {!isSearching && queriedResult && (
         <div className="mt-8 border border-slate-300 rounded p-6 space-y-4">
           <div className="flex justify-between items-start border-b border-slate-300 pb-3">
             <div>
               <h3 className="text-lg font-bold text-[#0B1A30]">Nexus Academy - UNEB Result Slip</h3>
               <p className="text-xs text-slate-600">Official Candidate Score Breakdown</p>
             </div>
-            <button
-              onClick={() => window.print()}
-              className="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded border border-slate-300 flex items-center gap-1"
-            >
-              <Printer className="w-3.5 h-3.5" /> Print
-            </button>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">

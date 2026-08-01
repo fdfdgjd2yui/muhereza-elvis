@@ -19,42 +19,41 @@ export const NewsSection: React.FC = () => {
   }, []);
 
   return (
-    <section id="news" className="py-24 bg-[#07111F] relative overflow-hidden border-t border-white/10">
-      <div className="absolute top-10 right-10 w-96 h-96 rounded-full bg-amber-500/10 blur-[150px] pointer-events-none" />
-
+    <section id="news" className="py-24 bg-slate-50 text-slate-900 relative overflow-hidden border-t border-slate-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        
         <div className="text-center max-w-3xl mx-auto mb-16 space-y-3">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full glass-card border border-[#D4AF37]/30 text-amber-300 text-xs font-bold uppercase tracking-widest">
-            <BookOpen className="w-3.5 h-3.5 text-[#D4AF37]" />
-            Institutional Press
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-50 border border-amber-300 text-amber-900 text-xs font-bold uppercase tracking-wider">
+            <BookOpen className="w-4 h-4 text-amber-600" />
+            Institutional Press & News
           </div>
-          <h2 className="text-3xl sm:text-5xl font-extrabold text-white heading-font">
-            Latest <span className="gold-gradient-text">News & Updates</span>
+          <h2 className="text-3xl sm:text-5xl font-black text-[#0B1A30] tracking-tight heading-font">
+            Latest <span className="text-amber-600">News & Announcements</span>
           </h2>
-          <p className="text-gray-300 text-base sm:text-lg">
-            Read official announcements, academic achievements, and school updates.
+          <p className="text-slate-600 text-base sm:text-lg">
+            Read official press releases, national UNEB examination results, and school milestones.
           </p>
         </div>
 
         {newsList.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {newsList.map((article) => (
               <div
                 key={article.id}
-                className="glass-card glass-card-hover rounded-3xl overflow-hidden border border-white/15 shadow-2xl flex flex-col justify-between group"
+                className="bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-md hover:shadow-xl transition-all duration-300 flex flex-col justify-between group hover:border-amber-500 transform hover:-translate-y-1"
               >
                 <div>
-                  <div className="relative p-6 bg-gradient-to-r from-[#10253C] to-[#0D1F33] border-b border-white/10 flex justify-between items-start">
-                    <div className="px-3 py-1 rounded-full bg-black/60 backdrop-blur-md border border-amber-500/30 text-[10px] font-bold text-[#D4AF37]">
-                      {article.category || 'Official News'}
-                    </div>
-                    <BookOpen className="w-5 h-5 text-[#D4AF37]/80" />
+                  <div className="p-6 bg-[#0B1A30] text-white flex justify-between items-start">
+                    <span className="px-3 py-1 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black uppercase">
+                      {article.category || 'Official Press'}
+                    </span>
+                    <Newspaper className="w-5 h-5 text-amber-400" />
                   </div>
 
                   <div className="p-6 space-y-3">
-                    <div className="flex items-center gap-3 text-xs text-gray-400">
+                    <div className="flex items-center gap-3 text-xs text-slate-500 font-semibold">
                       <span className="flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5 text-[#D4AF37]" />
+                        <Clock className="w-3.5 h-3.5 text-amber-600" />
                         {article.date}
                       </span>
                       {article.author && (
@@ -68,11 +67,11 @@ export const NewsSection: React.FC = () => {
                       )}
                     </div>
 
-                    <h3 className="text-xl font-bold text-white group-hover:text-amber-200 transition-colors leading-snug">
+                    <h3 className="text-lg font-black text-[#0B1A30] group-hover:text-amber-600 transition-colors leading-snug">
                       {article.title}
                     </h3>
 
-                    <p className="text-xs text-gray-300 leading-relaxed line-clamp-3">
+                    <p className="text-xs text-slate-600 leading-relaxed line-clamp-3">
                       {article.summary || article.content}
                     </p>
                   </div>
@@ -81,80 +80,49 @@ export const NewsSection: React.FC = () => {
                 <div className="p-6 pt-0">
                   <button
                     onClick={() => setSelectedNews(article)}
-                    className="flex items-center gap-2 text-xs font-bold text-[#D4AF37] hover:text-white transition-colors group/link"
+                    className="flex items-center gap-2 text-xs font-bold text-[#0B1A30] hover:text-amber-600 transition-colors group/link"
                   >
                     <span>Read Full Release</span>
-                    <ArrowRight className="w-4 h-4 group-hover/link:translate-x-1.5 transition-transform" />
+                    <ArrowRight className="w-4 h-4 group-hover/link:translate-x-1.5 transition-transform text-amber-600" />
                   </button>
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          /* Structural News Card Placeholders (Keeps Section Layout Intact) */
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[1, 2, 3].map((num) => (
-              <div
-                key={num}
-                className="rounded-3xl border border-white/10 bg-[#0B1A2F]/60 p-6 flex flex-col justify-between shadow-xl"
-              >
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center border-b border-white/10 pb-4">
-                    <span className="px-3 py-1 rounded-full bg-white/10 text-[10px] text-gray-400 font-medium">
-                      Press Slot #{num}
-                    </span>
-                    <Newspaper className="w-5 h-5 text-gray-500" />
-                  </div>
-
-                  <div className="p-4 rounded-xl border border-dashed border-white/15 bg-white/5 text-center text-xs text-gray-400 space-y-2">
-                    <p className="font-semibold text-gray-300">Official News Placeholder</p>
-                    <p>Official school news and announcements will be posted here via the Admin Dashboard.</p>
-                  </div>
-
-                  <div className="space-y-2 pt-2 text-xs text-gray-400">
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-gray-500" />
-                      <span>Publish Date: Pending</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-6">
-                  <div className="w-full py-2.5 rounded-xl border border-white/10 bg-white/5 text-center text-xs text-gray-500 font-medium">
-                    Article Full Text Available Upon Release
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="p-12 text-center bg-white border border-slate-200 rounded-3xl space-y-3">
+            <Newspaper className="w-10 h-10 text-slate-400 mx-auto" />
+            <p className="text-sm font-bold text-[#0B1A30]">No news articles posted yet.</p>
+            <p className="text-xs text-slate-500">School administrators can add official press releases in the Admin Portal.</p>
           </div>
         )}
       </div>
 
-      {/* Article Detail Modal */}
+      {/* Article Modal */}
       {selectedNews && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="glass-card w-full max-w-3xl rounded-3xl p-6 sm:p-8 border border-white/20 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-3xl rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-2xl relative max-h-[90vh] overflow-y-auto text-slate-900">
             <button
               onClick={() => setSelectedNews(null)}
-              className="absolute top-6 right-6 p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors"
+              className="absolute top-6 right-6 p-2 rounded-full bg-slate-100 text-slate-700 hover:bg-[#0B1A30] hover:text-white transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <div className="p-6 rounded-2xl bg-gradient-to-br from-[#10253C] to-[#07111F] border border-amber-500/30 mb-6 flex items-center justify-between">
+            <div className="p-4 rounded-2xl bg-slate-100 border border-slate-200 mb-6 flex items-center justify-between">
               <div>
-                <span className="text-xs font-bold text-[#D4AF37] uppercase">{selectedNews.category || 'Official Press'}</span>
-                <p className="text-xs text-gray-400 mt-1">{selectedNews.date} {selectedNews.author && `• ${selectedNews.author}`}</p>
+                <span className="text-xs font-black text-amber-700 uppercase">{selectedNews.category || 'Press Release'}</span>
+                <p className="text-xs text-slate-500 font-semibold mt-0.5">{selectedNews.date} {selectedNews.author && `• ${selectedNews.author}`}</p>
               </div>
-              <BookOpen className="w-6 h-6 text-[#D4AF37]" />
+              <BookOpen className="w-6 h-6 text-[#0B1A30]" />
             </div>
 
             <div className="space-y-4">
-              <h3 className="text-2xl sm:text-3xl font-bold text-white heading-font">
+              <h3 className="text-2xl sm:text-3xl font-black text-[#0B1A30]">
                 {selectedNews.title}
               </h3>
 
-              <p className="text-sm text-gray-200 leading-relaxed font-normal pt-2 border-t border-white/10 whitespace-pre-wrap">
+              <p className="text-sm text-slate-700 leading-relaxed font-medium pt-3 border-t border-slate-100 whitespace-pre-wrap">
                 {selectedNews.content}
               </p>
             </div>

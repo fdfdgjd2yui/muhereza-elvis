@@ -2,6 +2,14 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore, doc, getDoc, setDoc, deleteDoc, writeBatch, collection, getDocs } from 'firebase/firestore';
 import { StudentResult, GalleryItem, EventItem, NewsItem } from '../types';
+import { UPCOMING_EVENTS, INITIAL_GALLERY_ITEMS, NEWS_ARTICLES } from '../data/schoolData';
+
+// Check if Firebase is configured with real credentials
+export const isFirebaseConfigured = Boolean(
+  import.meta.env.VITE_FIREBASE_API_KEY &&
+  import.meta.env.VITE_FIREBASE_PROJECT_ID &&
+  import.meta.env.VITE_FIREBASE_API_KEY !== 'demo-api-key'
+);
 
 // Optional Firebase credentials setup (reads from environment if configured)
 const firebaseConfig = {
@@ -17,23 +25,33 @@ const firebaseConfig = {
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 export const db = getFirestore(app);
 
+// Timeout wrapper helper to prevent long unhandled connection hangs
+function withTimeout<T>(promise: Promise<T>, timeoutMs = 2500): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error('Firebase network request timed out')), timeoutMs)
+    )
+  ]);
+}
+
 /**
  * Fetch a single student result directly by their exact document ID (Index Number)
  * E.g., doc(db, 'students', indexNumber)
  */
 export async function getStudentFromFirestore(indexNumber: string): Promise<StudentResult | null> {
   const normalizedIndex = indexNumber.trim().toUpperCase();
-  if (!normalizedIndex) return null;
+  if (!normalizedIndex || !isFirebaseConfigured) return null;
 
   try {
     const docRef = doc(db, 'students', normalizedIndex);
-    const docSnap = await getDoc(docRef);
+    const docSnap = await withTimeout(getDoc(docRef));
 
     if (docSnap.exists()) {
       return docSnap.data() as StudentResult;
     }
   } catch (err) {
-    console.warn("Firestore live query note (using fallback state if offline):", err);
+    console.warn("Firestore live query note (using local state fallback):", err);
   }
   return null;
 }
@@ -43,6 +61,9 @@ export async function getStudentFromFirestore(indexNumber: string): Promise<Stud
  * Firestore document path: /students/{indexNumber}
  */
 export async function syncStudentsToFirestore(students: StudentResult[]): Promise<{ count: number; success: boolean }> {
+  if (!isFirebaseConfigured) {
+    return { count: students.length, success: true };
+  }
   try {
     const batch = writeBatch(db);
     
@@ -55,7 +76,7 @@ export async function syncStudentsToFirestore(students: StudentResult[]): Promis
       }, { merge: true });
     });
 
-    await batch.commit();
+    await withTimeout(batch.commit());
     return { count: students.length, success: true };
   } catch (err) {
     console.warn("Firestore batch upload notice (falling back to application local store):", err);
@@ -67,10 +88,20 @@ export async function syncStudentsToFirestore(students: StudentResult[]): Promis
  * Delete a single student document from Firestore by index number
  */
 export async function deleteStudentFromFirestore(indexNumber: string): Promise<boolean> {
+  const docId = indexNumber.trim().toUpperCase();
+  const saved = localStorage.getItem('nexus_student_results');
+  if (saved !== null) {
+    try {
+      const list: StudentResult[] = JSON.parse(saved);
+      const filtered = list.filter(s => s.indexNumber.trim().toUpperCase() !== docId);
+      localStorage.setItem('nexus_student_results', JSON.stringify(filtered));
+    } catch (e) {}
+  }
+
+  if (!isFirebaseConfigured) return true;
   try {
-    const docId = indexNumber.trim().toUpperCase();
     const docRef = doc(db, 'students', docId);
-    await deleteDoc(docRef);
+    await withTimeout(deleteDoc(docRef));
     return true;
   } catch (err) {
     console.warn("Firestore document deletion notice:", err);
@@ -82,13 +113,16 @@ export async function deleteStudentFromFirestore(indexNumber: string): Promise<b
  * Delete all student documents from Firestore using writeBatch
  */
 export async function clearAllStudentsFromFirestore(indexNumbers: string[]): Promise<boolean> {
+  localStorage.setItem('nexus_student_results', JSON.stringify([]));
+
+  if (!isFirebaseConfigured) return true;
   try {
     const batch = writeBatch(db);
     indexNumbers.forEach((id) => {
       const docRef = doc(db, 'students', id.trim().toUpperCase());
       batch.delete(docRef);
     });
-    await batch.commit();
+    await withTimeout(batch.commit());
     return true;
   } catch (err) {
     console.warn("Firestore batch delete notice:", err);
@@ -293,48 +327,77 @@ export async function searchStudentInGoogleSheet(
 // ==========================================
 
 export async function getGalleryFromFirestore(): Promise<GalleryItem[]> {
-  try {
-    const snap = await getDocs(collection(db, 'gallery'));
-    if (!snap.empty) {
-      const items: GalleryItem[] = [];
-      snap.forEach((docSnap) => {
-        items.push(docSnap.data() as GalleryItem);
-      });
-      localStorage.setItem('nexus_gallery_items', JSON.stringify(items));
-      return items;
+  const saved = localStorage.getItem('nexus_gallery_items');
+  if (saved !== null) {
+    try {
+      const parsed: GalleryItem[] = JSON.parse(saved);
+      const filtered = parsed.filter(i => !['gal_1', 'gal_2', 'gal_3', 'gal_4', 'gal_5'].includes(i.id));
+      return filtered;
+    } catch (err) {
+      console.warn("Failed to parse saved gallery:", err);
     }
-  } catch (err) {
-    console.warn("Firestore gallery query notice:", err);
   }
 
-  const saved = localStorage.getItem('nexus_gallery_items');
-  return saved ? JSON.parse(saved) : [];
+  if (isFirebaseConfigured) {
+    try {
+      const snap = await withTimeout(getDocs(collection(db, 'gallery')));
+      if (!snap.empty) {
+        const items: GalleryItem[] = [];
+        snap.forEach((docSnap) => {
+          items.push(docSnap.data() as GalleryItem);
+        });
+        const filtered = items.filter(i => !['gal_1', 'gal_2', 'gal_3', 'gal_4', 'gal_5'].includes(i.id));
+        localStorage.setItem('nexus_gallery_items', JSON.stringify(filtered));
+        return filtered;
+      }
+    } catch (err) {
+      console.warn("Firestore gallery query notice:", err);
+    }
+  }
+
+  localStorage.setItem('nexus_gallery_items', JSON.stringify([]));
+  return [];
 }
 
 export async function addGalleryItemToFirestore(item: GalleryItem): Promise<boolean> {
-  try {
-    const docRef = doc(db, 'gallery', item.id);
-    await setDoc(docRef, { ...item, createdAt: new Date().toISOString() }, { merge: true });
-  } catch (err) {
-    console.warn("Firestore gallery upload notice:", err);
-  }
-
   const current = await getGalleryFromFirestore();
   const updated = [item, ...current.filter(i => i.id !== item.id)];
   localStorage.setItem('nexus_gallery_items', JSON.stringify(updated));
+
+  if (isFirebaseConfigured) {
+    try {
+      const docRef = doc(db, 'gallery', item.id);
+      await withTimeout(setDoc(docRef, { ...item, createdAt: new Date().toISOString() }, { merge: true }));
+    } catch (err) {
+      console.warn("Firestore gallery upload notice:", err);
+    }
+  }
+
   return true;
 }
 
 export async function deleteGalleryItemFromFirestore(id: string): Promise<boolean> {
-  try {
-    await deleteDoc(doc(db, 'gallery', id));
-  } catch (err) {
-    console.warn("Firestore gallery delete notice:", err);
+  const saved = localStorage.getItem('nexus_gallery_items');
+  let current: GalleryItem[] = [];
+  if (saved !== null) {
+    try {
+      current = JSON.parse(saved);
+    } catch (e) {}
+  } else {
+    current = await getGalleryFromFirestore();
   }
 
-  const current = await getGalleryFromFirestore();
   const updated = current.filter(i => i.id !== id);
   localStorage.setItem('nexus_gallery_items', JSON.stringify(updated));
+
+  if (isFirebaseConfigured) {
+    try {
+      await withTimeout(deleteDoc(doc(db, 'gallery', id)));
+    } catch (err) {
+      console.warn("Firestore gallery delete notice:", err);
+    }
+  }
+
   return true;
 }
 
@@ -343,48 +406,65 @@ export async function deleteGalleryItemFromFirestore(id: string): Promise<boolea
 // ==========================================
 
 export async function getEventsFromFirestore(): Promise<EventItem[]> {
-  try {
-    const snap = await getDocs(collection(db, 'events'));
-    if (!snap.empty) {
-      const items: EventItem[] = [];
-      snap.forEach((docSnap) => {
-        items.push(docSnap.data() as EventItem);
-      });
-      localStorage.setItem('nexus_events_items', JSON.stringify(items));
-      return items;
+  if (isFirebaseConfigured) {
+    try {
+      const snap = await withTimeout(getDocs(collection(db, 'events')));
+      if (!snap.empty) {
+        const items: EventItem[] = [];
+        snap.forEach((docSnap) => {
+          items.push(docSnap.data() as EventItem);
+        });
+        localStorage.setItem('nexus_events_items', JSON.stringify(items));
+        return items;
+      }
+    } catch (err) {
+      console.warn("Firestore events query notice:", err);
     }
-  } catch (err) {
-    console.warn("Firestore events query notice:", err);
   }
 
   const saved = localStorage.getItem('nexus_events_items');
-  return saved ? JSON.parse(saved) : [];
+  if (saved !== null) {
+    try {
+      return JSON.parse(saved);
+    } catch (err) {
+      console.warn("Failed to parse saved events:", err);
+    }
+  }
+
+  localStorage.setItem('nexus_events_items', JSON.stringify(UPCOMING_EVENTS));
+  return UPCOMING_EVENTS;
 }
 
 export async function addEventToFirestore(item: EventItem): Promise<boolean> {
-  try {
-    const docRef = doc(db, 'events', item.id);
-    await setDoc(docRef, { ...item, createdAt: new Date().toISOString() }, { merge: true });
-  } catch (err) {
-    console.warn("Firestore event upload notice:", err);
-  }
-
   const current = await getEventsFromFirestore();
   const updated = [item, ...current.filter(i => i.id !== item.id)];
   localStorage.setItem('nexus_events_items', JSON.stringify(updated));
+
+  if (isFirebaseConfigured) {
+    try {
+      const docRef = doc(db, 'events', item.id);
+      await withTimeout(setDoc(docRef, { ...item, createdAt: new Date().toISOString() }, { merge: true }));
+    } catch (err) {
+      console.warn("Firestore event upload notice:", err);
+    }
+  }
+
   return true;
 }
 
 export async function deleteEventFromFirestore(id: string): Promise<boolean> {
-  try {
-    await deleteDoc(doc(db, 'events', id));
-  } catch (err) {
-    console.warn("Firestore event delete notice:", err);
-  }
-
   const current = await getEventsFromFirestore();
   const updated = current.filter(i => i.id !== id);
   localStorage.setItem('nexus_events_items', JSON.stringify(updated));
+
+  if (isFirebaseConfigured) {
+    try {
+      await withTimeout(deleteDoc(doc(db, 'events', id)));
+    } catch (err) {
+      console.warn("Firestore event delete notice:", err);
+    }
+  }
+
   return true;
 }
 
@@ -393,30 +473,43 @@ export async function deleteEventFromFirestore(id: string): Promise<boolean> {
 // ==========================================
 
 export async function getNewsFromFirestore(): Promise<NewsItem[]> {
-  try {
-    const snap = await getDocs(collection(db, 'news'));
-    if (!snap.empty) {
-      const items: NewsItem[] = [];
-      snap.forEach((docSnap) => {
-        items.push(docSnap.data() as NewsItem);
-      });
-      localStorage.setItem('nexus_news_items', JSON.stringify(items));
-      return items;
+  if (isFirebaseConfigured) {
+    try {
+      const snap = await withTimeout(getDocs(collection(db, 'news')));
+      if (!snap.empty) {
+        const items: NewsItem[] = [];
+        snap.forEach((docSnap) => {
+          items.push(docSnap.data() as NewsItem);
+        });
+        localStorage.setItem('nexus_news_items', JSON.stringify(items));
+        return items;
+      }
+    } catch (err) {
+      console.warn("Firestore news query notice:", err);
     }
-  } catch (err) {
-    console.warn("Firestore news query notice:", err);
   }
 
   const saved = localStorage.getItem('nexus_news_items');
-  return saved ? JSON.parse(saved) : [];
+  if (saved !== null) {
+    try {
+      return JSON.parse(saved);
+    } catch (err) {
+      console.warn("Failed to parse saved news:", err);
+    }
+  }
+
+  localStorage.setItem('nexus_news_items', JSON.stringify(NEWS_ARTICLES));
+  return NEWS_ARTICLES;
 }
 
 export async function addNewsToFirestore(item: NewsItem): Promise<boolean> {
-  try {
-    const docRef = doc(db, 'news', item.id);
-    await setDoc(docRef, { ...item, createdAt: new Date().toISOString() }, { merge: true });
-  } catch (err) {
-    console.warn("Firestore news upload notice:", err);
+  if (isFirebaseConfigured) {
+    try {
+      const docRef = doc(db, 'news', item.id);
+      await withTimeout(setDoc(docRef, { ...item, createdAt: new Date().toISOString() }, { merge: true }));
+    } catch (err) {
+      console.warn("Firestore news upload notice:", err);
+    }
   }
 
   const current = await getNewsFromFirestore();
@@ -426,10 +519,12 @@ export async function addNewsToFirestore(item: NewsItem): Promise<boolean> {
 }
 
 export async function deleteNewsFromFirestore(id: string): Promise<boolean> {
-  try {
-    await deleteDoc(doc(db, 'news', id));
-  } catch (err) {
-    console.warn("Firestore news delete notice:", err);
+  if (isFirebaseConfigured) {
+    try {
+      await withTimeout(deleteDoc(doc(db, 'news', id)));
+    } catch (err) {
+      console.warn("Firestore news delete notice:", err);
+    }
   }
 
   const current = await getNewsFromFirestore();

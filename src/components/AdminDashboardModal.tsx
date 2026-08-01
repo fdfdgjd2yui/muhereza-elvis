@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { StudentResult, EventItem } from '../types';
+import { StudentResult, EventItem, GalleryItem } from '../types';
+import { compressImageToThumbnail } from '../lib/imageUtils';
 import { 
   parseSpreadsheetData, 
   syncStudentsToFirestore, 
@@ -7,7 +8,10 @@ import {
   clearAllStudentsFromFirestore,
   getEventsFromFirestore,
   addEventToFirestore,
-  deleteEventFromFirestore
+  deleteEventFromFirestore,
+  getGalleryFromFirestore,
+  addGalleryItemToFirestore,
+  deleteGalleryItemFromFirestore
 } from '../lib/firebase';
 import { 
   Lock, 
@@ -22,7 +26,13 @@ import {
   Plus,
   RefreshCw,
   Search,
-  BookOpen
+  Image as ImageIcon,
+  Upload,
+  Sparkles,
+  MapPin,
+  Clock,
+  Tag,
+  Edit2
 } from 'lucide-react';
 
 interface AdminDashboardModalProps {
@@ -43,8 +53,8 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState('');
 
-  // Active Tab: 'paste' | 'events' | 'students'
-  const [activeTab, setActiveTab] = useState<'paste' | 'events' | 'students'>('paste');
+  // Active Tab: 'paste' | 'events' | 'gallery' | 'students'
+  const [activeTab, setActiveTab] = useState<'paste' | 'events' | 'gallery' | 'students'>('paste');
 
   // Search query for students table
   const [searchQuery, setSearchQuery] = useState('');
@@ -53,24 +63,37 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
   const [pastedData, setPastedData] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Status message
+  // Toast notification
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Events Manager Form State (No Images!)
+  // Events Manager State
   const [eventItems, setEventItems] = useState<EventItem[]>([]);
   const [eventTitle, setEventTitle] = useState('');
   const [eventDate, setEventDate] = useState('');
+  const [eventTime, setEventTime] = useState('09:00 AM');
+  const [eventLocation, setEventLocation] = useState('Nexus Main Auditorium');
+  const [eventCategory, setEventCategory] = useState('Academics');
   const [eventDescription, setEventDescription] = useState('');
+  const [eventImageBase64, setEventImageBase64] = useState('');
+
+  // Gallery Manager State
+  const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
+  const [galleryTitle, setGalleryTitle] = useState('');
+  const [galleryCategory, setGalleryCategory] = useState('stem');
+  const [galleryDescription, setGalleryDescription] = useState('');
+  const [galleryImageBase64, setGalleryImageBase64] = useState('');
 
   useEffect(() => {
     if (isOpen && isAuthenticated) {
-      loadEventsData();
+      loadData();
     }
   }, [isOpen, isAuthenticated]);
 
-  const loadEventsData = async () => {
+  const loadData = async () => {
     const e = await getEventsFromFirestore();
     setEventItems(e);
+    const g = await getGalleryFromFirestore();
+    setGalleryItems(g);
   };
 
   if (!isOpen) return null;
@@ -90,7 +113,32 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
     setTimeout(() => setToastMessage(null), 5000);
   };
 
-  // Sync Pasted Student Data to Firestore
+  // Convert device photo to compressed light-speed thumbnail
+  const handleEventImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        const thumb = await compressImageToThumbnail(file, 800, 800, 0.75);
+        setEventImageBase64(thumb);
+      } catch (err) {
+        showToast('error', 'Could not process image photo.');
+      }
+    }
+  };
+
+  const handleGalleryImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        const thumb = await compressImageToThumbnail(file, 800, 800, 0.75);
+        setGalleryImageBase64(thumb);
+      } catch (err) {
+        showToast('error', 'Could not process image photo.');
+      }
+    }
+  };
+
+  // Sync Pasted Student Data
   const handleProcessAndSync = async () => {
     if (!pastedData.trim()) {
       showToast('error', 'Please paste student rows into the text area before uploading.');
@@ -104,7 +152,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
       const parsedStudents = parseSpreadsheetData(pastedData);
       
       if (parsedStudents.length === 0) {
-        showToast('error', 'Could not parse student records. Please ensure text contains valid rows.');
+        showToast('error', 'Could not parse student records. Ensure text contains valid rows.');
         setIsProcessing(false);
         return;
       }
@@ -120,7 +168,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
 
       showToast(
         'success',
-        `Successfully uploaded and synced ${syncResult.count} student record(s)!`
+        `Successfully uploaded and saved ${syncResult.count} student record(s)!`
       );
       setPastedData('');
     } catch (err: any) {
@@ -130,45 +178,88 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
     }
   };
 
-  // Add Event (Simple text form, no image upload)
+  // Add / Update Event
   const handleAddEvent = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!eventTitle.trim() || !eventDate.trim() || !eventDescription.trim()) {
-      showToast('error', 'Please fill in Title, Date, and Description.');
+    if (!eventTitle.trim() || !eventDate.trim()) {
+      showToast('error', 'Please fill in Event Title and Date.');
       return;
+    }
+
+    // Format date string nicely if HTML date picker format YYYY-MM-DD was selected
+    let formattedDate = eventDate.trim();
+    if (formattedDate.includes('-') && formattedDate.length === 10) {
+      const d = new Date(formattedDate);
+      if (!isNaN(d.getTime())) {
+        formattedDate = d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+      }
     }
 
     const newEvent: EventItem = {
       id: 'evt_' + Date.now(),
       title: eventTitle.trim(),
-      date: eventDate.trim(),
-      description: eventDescription.trim(),
-      time: '09:00 AM',
-      location: 'Main Campus',
-      category: 'General',
-      image: ''
+      date: formattedDate,
+      time: eventTime.trim() || '09:00 AM',
+      location: eventLocation.trim() || 'Nexus Auditorium',
+      category: eventCategory,
+      description: eventDescription.trim() || 'Official Nexus Academy event.',
+      image: eventImageBase64
     };
 
     await addEventToFirestore(newEvent);
     window.dispatchEvent(new Event('nexus_events_updated'));
-    await loadEventsData();
+    await loadData();
 
     setEventTitle('');
     setEventDate('');
     setEventDescription('');
-    showToast('success', 'Event published successfully.');
+    setEventImageBase64('');
+    showToast('success', 'Event published and saved to database successfully!');
   };
 
-  // Delete Event
   const handleDeleteEvent = async (id: string) => {
     if (!window.confirm('Delete this event?')) return;
     await deleteEventFromFirestore(id);
     window.dispatchEvent(new Event('nexus_events_updated'));
-    await loadEventsData();
+    await loadData();
     showToast('success', 'Event deleted.');
   };
 
-  // Delete Single Student
+  // Add Gallery Item
+  const handleAddGallery = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!galleryTitle.trim()) {
+      showToast('error', 'Please enter a title for the gallery item.');
+      return;
+    }
+
+    const newItem: GalleryItem = {
+      id: 'gal_' + Date.now(),
+      title: galleryTitle.trim(),
+      category: galleryCategory,
+      description: galleryDescription.trim(),
+      image: galleryImageBase64
+    };
+
+    await addGalleryItemToFirestore(newItem);
+    window.dispatchEvent(new Event('nexus_gallery_updated'));
+    await loadData();
+
+    setGalleryTitle('');
+    setGalleryDescription('');
+    setGalleryImageBase64('');
+    showToast('success', 'Campus Gallery item added!');
+  };
+
+  const handleDeleteGallery = async (id: string) => {
+    if (!window.confirm('Delete this gallery photo?')) return;
+    await deleteGalleryItemFromFirestore(id);
+    window.dispatchEvent(new Event('nexus_gallery_updated'));
+    await loadData();
+    showToast('success', 'Gallery item deleted.');
+  };
+
+  // Student Deletion
   const handleDeleteStudent = async (indexNumber: string) => {
     if (!window.confirm(`Delete record for Index Number ${indexNumber}?`)) return;
     try {
@@ -182,7 +273,6 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
     }
   };
 
-  // Clear All Students
   const handleClearAllStudents = async () => {
     if (!window.confirm('Are you sure you want to clear ALL student records?')) return;
     try {
@@ -202,7 +292,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in overflow-y-auto">
-      <div className="w-full max-w-4xl bg-white border border-slate-300 text-slate-900 rounded shadow-xl overflow-hidden my-8">
+      <div className="w-full max-w-4xl bg-white border border-slate-300 text-slate-900 rounded-2xl shadow-2xl overflow-hidden my-8">
         
         {/* Header */}
         <div className="bg-[#0B1A30] text-white px-6 py-4 flex items-center justify-between">
@@ -222,7 +312,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
         {!isAuthenticated ? (
           <div className="p-8 max-w-md mx-auto text-center space-y-4">
             <h3 className="text-lg font-bold text-[#0B1A30]">Admin Password Required</h3>
-            <p className="text-xs text-slate-600">Enter the administrator password to manage UNEB records & events.</p>
+            <p className="text-xs text-slate-600">Enter the administrator password to manage UNEB records & campus events.</p>
 
             <form onSubmit={handlePasswordSubmit} className="space-y-3 text-left">
               <div>
@@ -259,7 +349,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
             
             {/* Status Toast Banner */}
             {toastMessage && (
-              <div className={`p-3 rounded border text-xs font-semibold flex items-center justify-between ${
+              <div className={`p-3 rounded-xl border text-xs font-semibold flex items-center justify-between ${
                 toastMessage.type === 'success' 
                   ? 'bg-emerald-50 border-emerald-300 text-emerald-800' 
                   : 'bg-red-50 border-red-300 text-red-800'
@@ -274,13 +364,13 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
               </div>
             )}
 
-            {/* Tabs */}
-            <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
+            {/* Navigation Tabs */}
+            <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-3">
               <button
                 onClick={() => setActiveTab('paste')}
-                className={`px-3 py-1.5 rounded text-xs font-bold transition-colors ${
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
                   activeTab === 'paste'
-                    ? 'bg-[#0B1A30] text-white'
+                    ? 'bg-[#0B1A30] text-white shadow-md'
                     : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
               >
@@ -289,9 +379,9 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
 
               <button
                 onClick={() => setActiveTab('events')}
-                className={`px-3 py-1.5 rounded text-xs font-bold transition-colors ${
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
                   activeTab === 'events'
-                    ? 'bg-[#0B1A30] text-white'
+                    ? 'bg-[#0B1A30] text-white shadow-md'
                     : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
               >
@@ -299,10 +389,21 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
               </button>
 
               <button
+                onClick={() => setActiveTab('gallery')}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                  activeTab === 'gallery'
+                    ? 'bg-[#0B1A30] text-white shadow-md'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                Campus Gallery ({galleryItems.length})
+              </button>
+
+              <button
                 onClick={() => setActiveTab('students')}
-                className={`px-3 py-1.5 rounded text-xs font-bold transition-colors ${
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
                   activeTab === 'students'
-                    ? 'bg-[#0B1A30] text-white'
+                    ? 'bg-[#0B1A30] text-white shadow-md'
                     : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
               >
@@ -310,13 +411,13 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
               </button>
             </div>
 
-            {/* TAB 1: PASTE & SYNC STUDENT DATA */}
+            {/* TAB 1: PASTE STUDENT DATA */}
             {activeTab === 'paste' && (
               <div className="space-y-3">
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded text-xs text-slate-700">
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700">
                   <p className="font-bold text-[#0B1A30] mb-1">Paste Excel or CSV Student Rows</p>
-                  <p>Input columns: Index Number, Name, Level (UCE/UACE), Year, Stream, Aggregates/Points, Division.</p>
-                  <p className="text-slate-500 mt-0.5">Saves directly to candidate records database.</p>
+                  <p>Columns: Index Number, Name, Level (UCE/UACE), Year, Gender, Stream, Aggregates/Points, Division.</p>
+                  <p className="text-slate-500 mt-1">Saves directly into permanent student results database.</p>
                 </div>
 
                 <textarea
@@ -324,103 +425,271 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                   value={pastedData}
                   onChange={(e) => setPastedData(e.target.value)}
                   placeholder={`U0001/501\tKATO JOHN\tUCE\t2025\tM\tSTREAM A\t10 AGGREGATES\tDIVISION 1\nU0001/502\tNAKATO MARY\tUACE\t2025\tF\tPCM/ICT\t18 POINTS\tCLASS 1`}
-                  className="w-full p-3 rounded border border-slate-300 font-mono text-xs text-slate-800 focus:outline-none focus:border-[#0B1A30]"
+                  className="w-full p-3 rounded-xl border border-slate-300 font-mono text-xs text-slate-800 focus:outline-none focus:border-[#0B1A30]"
                 />
 
                 <div className="flex justify-end">
                   <button
                     onClick={handleProcessAndSync}
                     disabled={isProcessing}
-                    className="px-5 py-2 rounded bg-[#0B1A30] text-white font-bold text-xs hover:bg-slate-800 transition-colors flex items-center gap-2 disabled:opacity-50"
+                    className="px-5 py-2.5 rounded-xl bg-[#0B1A30] text-white font-bold text-xs hover:bg-slate-800 transition-colors flex items-center gap-2 disabled:opacity-50 shadow"
                   >
                     {isProcessing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
-                    <span>Upload & Sync Records</span>
+                    <span>Upload & Sync Student Records</span>
                   </button>
                 </div>
               </div>
             )}
 
-            {/* TAB 2: SIMPLE TEXT FORM TO ADD EVENTS (NO IMAGES) */}
+            {/* TAB 2: EVENTS MANAGER WITH DEVICE IMAGE SELECTION */}
             {activeTab === 'events' && (
-              <div className="space-y-5">
-                <form onSubmit={handleAddEvent} className="p-4 rounded border border-slate-300 bg-slate-50 space-y-3">
-                  <h3 className="text-xs font-bold text-[#0B1A30] uppercase tracking-wider flex items-center gap-1.5">
-                    <Plus className="w-4 h-4" /> Add New School Event
+              <div className="space-y-6">
+                <form onSubmit={handleAddEvent} className="p-5 rounded-2xl border border-slate-300 bg-slate-50 space-y-4">
+                  <h3 className="text-xs font-bold text-[#0B1A30] uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-200 pb-2">
+                    <Plus className="w-4 h-4 text-amber-600" /> Create / Update Event with Device Storage Photo
                   </h3>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">Event Title</label>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Event Title *</label>
                       <input
                         type="text"
                         value={eventTitle}
                         onChange={(e) => setEventTitle(e.target.value)}
-                        placeholder="e.g. End of Term Parent Teacher Conference"
-                        className="w-full px-3 py-2 rounded border border-slate-300 text-xs text-slate-800 focus:outline-none focus:border-[#0B1A30]"
+                        placeholder="e.g. Annual Science & STEM Fair"
+                        className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-800 focus:outline-none focus:border-[#0B1A30]"
+                        required
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">Date</label>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Category</label>
+                      <select
+                        value={eventCategory}
+                        onChange={(e) => setEventCategory(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-800 focus:outline-none focus:border-[#0B1A30]"
+                      >
+                        <option value="Academics">Academics</option>
+                        <option value="Examinations">Examinations</option>
+                        <option value="Sports">Sports</option>
+                        <option value="Cultural">Cultural & Arts</option>
+                        <option value="General">General School</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1">
+                        <Calendar className="w-3.5 h-3.5 text-amber-600" /> Date (Select from Calendar) *
+                      </label>
                       <input
-                        type="text"
+                        type="date"
                         value={eventDate}
                         onChange={(e) => setEventDate(e.target.value)}
-                        placeholder="e.g. August 15, 2026"
-                        className="w-full px-3 py-2 rounded border border-slate-300 text-xs text-slate-800 focus:outline-none focus:border-[#0B1A30]"
+                        className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-800 focus:outline-none focus:border-[#0B1A30] cursor-pointer"
+                        required
                       />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Time & Venue</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={eventTime}
+                          onChange={(e) => setEventTime(e.target.value)}
+                          placeholder="09:00 AM"
+                          className="w-1/3 px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-800 focus:outline-none focus:border-[#0B1A30]"
+                        />
+                        <input
+                          type="text"
+                          value={eventLocation}
+                          onChange={(e) => setEventLocation(e.target.value)}
+                          placeholder="Nexus Main Auditorium"
+                          className="w-2/3 px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-800 focus:outline-none focus:border-[#0B1A30]"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Device Image Picker (No URLs required!) */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1.5">
+                      <ImageIcon className="w-4 h-4 text-amber-600" />
+                      Select Photo from Device Storage
+                    </label>
+
+                    <div className="flex flex-col sm:flex-row items-center gap-4 p-3 bg-white border border-slate-300 rounded-xl">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleEventImageSelect}
+                        className="text-xs text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-[#0B1A30] file:text-white hover:file:bg-slate-800 cursor-pointer"
+                      />
+
+                      {eventImageBase64 && (
+                        <div className="flex items-center gap-3 border-l border-slate-200 pl-4">
+                          <img src={eventImageBase64} alt="Preview" className="w-12 h-12 rounded-lg object-cover border border-slate-300" />
+                          <button
+                            type="button"
+                            onClick={() => setEventImageBase64('')}
+                            className="text-[11px] font-bold text-red-600 hover:underline"
+                          >
+                            Remove Photo
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Description</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Description</label>
                     <textarea
                       rows={2}
                       value={eventDescription}
                       onChange={(e) => setEventDescription(e.target.value)}
-                      placeholder="Brief details about the event..."
-                      className="w-full p-2.5 rounded border border-slate-300 text-xs text-slate-800 focus:outline-none focus:border-[#0B1A30]"
+                      placeholder="Enter event agenda, guest information, or parent instructions..."
+                      className="w-full p-2.5 rounded-xl border border-slate-300 text-xs text-slate-800 focus:outline-none focus:border-[#0B1A30]"
                     />
                   </div>
 
                   <button
                     type="submit"
-                    className="px-4 py-2 rounded bg-[#0B1A30] text-white font-bold text-xs hover:bg-slate-800 transition-colors flex items-center gap-1.5"
+                    className="px-5 py-2.5 rounded-xl bg-[#0B1A30] text-white font-bold text-xs hover:bg-slate-800 transition-colors flex items-center gap-2 shadow"
                   >
-                    <Calendar className="w-4 h-4" /> Save Event
+                    <Calendar className="w-4 h-4 text-amber-400" /> Save Event to Database
                   </button>
                 </form>
 
                 {/* Published Events List */}
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <h4 className="text-xs font-bold text-slate-700 uppercase">Existing Events ({eventItems.length})</h4>
                   {eventItems.length === 0 ? (
-                    <p className="text-xs text-slate-500 italic">No events currently posted.</p>
+                    <p className="text-xs text-slate-500 italic">No events posted yet.</p>
                   ) : (
-                    <ul className="divide-y divide-slate-200 border border-slate-200 rounded">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-72 overflow-y-auto">
                       {eventItems.map((evt) => (
-                        <li key={evt.id} className="p-3 flex items-start justify-between gap-4 hover:bg-slate-50">
-                          <div>
-                            <p className="text-xs font-bold text-[#0B1A30]">{evt.title}</p>
-                            <p className="text-[11px] text-slate-500 font-semibold">{evt.date}</p>
-                            <p className="text-xs text-slate-700 mt-1">{evt.description}</p>
+                        <div key={evt.id} className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-start justify-between gap-3">
+                          <div className="flex items-start gap-3">
+                            {evt.image ? (
+                              <img src={evt.image} alt={evt.title} className="w-14 h-14 rounded-lg object-cover border border-slate-300 shrink-0" />
+                            ) : (
+                              <div className="w-14 h-14 rounded-lg bg-[#0B1A30] text-white font-black text-xs flex items-center justify-center shrink-0">
+                                EVT
+                              </div>
+                            )}
+                            <div>
+                              <p className="text-xs font-bold text-[#0B1A30] leading-tight">{evt.title}</p>
+                              <p className="text-[11px] text-amber-700 font-semibold mt-0.5">{evt.date} • {evt.category}</p>
+                              <p className="text-[11px] text-slate-600 line-clamp-1 mt-1">{evt.description}</p>
+                            </div>
                           </div>
                           <button
                             onClick={() => handleDeleteEvent(evt.id)}
-                            className="p-1.5 rounded bg-red-50 text-red-600 hover:bg-red-100 transition-colors shrink-0"
+                            className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors shrink-0"
                             title="Delete Event"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
-                        </li>
+                        </div>
                       ))}
-                    </ul>
+                    </div>
                   )}
                 </div>
               </div>
             )}
 
-            {/* TAB 3: STUDENT RECORDS MANAGEMENT */}
+            {/* TAB 3: CAMPUS GALLERY MANAGEMENT WITH DEVICE STORAGE UPLOAD */}
+            {activeTab === 'gallery' && (
+              <div className="space-y-6">
+                <form onSubmit={handleAddGallery} className="p-5 rounded-2xl border border-slate-300 bg-slate-50 space-y-4">
+                  <h3 className="text-xs font-bold text-[#0B1A30] uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-200 pb-2">
+                    <ImageIcon className="w-4 h-4 text-amber-600" /> Add Campus Gallery Photo from Device Storage
+                  </h3>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Photo Title *</label>
+                    <input
+                      type="text"
+                      value={galleryTitle}
+                      onChange={(e) => setGalleryTitle(e.target.value)}
+                      placeholder="e.g. Science Fair Showcase"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-800 focus:outline-none focus:border-[#0B1A30]"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Select Photo from Device Storage *</label>
+                    <div className="flex flex-col sm:flex-row items-center gap-4 p-3 bg-white border border-slate-300 rounded-xl">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleGalleryImageSelect}
+                        className="text-xs text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-[#0B1A30] file:text-white hover:file:bg-slate-800 cursor-pointer"
+                      />
+
+                      {galleryImageBase64 && (
+                        <div className="flex items-center gap-3 border-l border-slate-200 pl-4">
+                          <img src={galleryImageBase64} alt="Preview" className="w-12 h-12 rounded-lg object-cover border border-slate-300" />
+                          <button
+                            type="button"
+                            onClick={() => setGalleryImageBase64('')}
+                            className="text-[11px] font-bold text-red-600 hover:underline"
+                          >
+                            Remove Photo
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Caption / Description</label>
+                    <textarea
+                      rows={2}
+                      value={galleryDescription}
+                      onChange={(e) => setGalleryDescription(e.target.value)}
+                      placeholder="Brief details about this campus photo..."
+                      className="w-full p-2.5 rounded-xl border border-slate-300 text-xs text-slate-800 focus:outline-none focus:border-[#0B1A30]"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 rounded-xl bg-[#0B1A30] text-white font-bold text-xs hover:bg-slate-800 transition-colors flex items-center gap-2 shadow"
+                  >
+                    <Upload className="w-4 h-4 text-amber-400" /> Add to Campus Gallery
+                  </button>
+                </form>
+
+                {/* Current Gallery Grid */}
+                <div className="space-y-3">
+                  <h4 className="text-xs font-bold text-slate-700 uppercase">Current Campus Gallery ({galleryItems.length})</h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-72 overflow-y-auto">
+                    {galleryItems.map((g) => (
+                      <div key={g.id} className="relative rounded-xl border border-slate-200 overflow-hidden bg-slate-50 p-2 space-y-2 group">
+                        {g.image ? (
+                          <img src={g.image} alt={g.title} className="w-full h-24 object-cover rounded-lg" />
+                        ) : (
+                          <div className="w-full h-24 bg-[#0B1A30] text-white font-bold text-xs flex items-center justify-center rounded-lg">
+                            Campus Photo
+                          </div>
+                        )}
+                        <p className="text-[11px] font-bold text-[#0B1A30] truncate">{g.title}</p>
+                        <button
+                          onClick={() => handleDeleteGallery(g.id)}
+                          className="w-full py-1 rounded bg-red-50 text-red-600 text-[10px] font-bold hover:bg-red-100 transition-colors"
+                        >
+                          Delete Photo
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 4: STUDENT RECORDS MANAGEMENT */}
             {activeTab === 'students' && (
               <div className="space-y-3">
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
@@ -431,20 +700,20 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                       placeholder="Search candidate or index..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-8 pr-3 py-1.5 rounded border border-slate-300 text-xs text-slate-800 focus:outline-none focus:border-[#0B1A30]"
+                      className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-slate-300 text-xs text-slate-800 focus:outline-none focus:border-[#0B1A30]"
                     />
                   </div>
 
                   <button
                     onClick={handleClearAllStudents}
-                    className="px-3 py-1.5 rounded bg-red-50 text-red-700 border border-red-200 text-xs font-bold hover:bg-red-100 transition-colors flex items-center gap-1.5"
+                    className="px-3.5 py-2 rounded-xl bg-red-50 text-red-700 border border-red-200 text-xs font-bold hover:bg-red-100 transition-colors flex items-center gap-1.5"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                     <span>Clear All Student Records</span>
                   </button>
                 </div>
 
-                <div className="overflow-x-auto border border-slate-200 rounded max-h-72">
+                <div className="overflow-x-auto border border-slate-200 rounded-xl max-h-72">
                   <table className="w-full text-left text-xs">
                     <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
                       <tr>

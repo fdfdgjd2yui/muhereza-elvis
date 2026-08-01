@@ -12,7 +12,7 @@ export const Footer: React.FC<FooterProps> = () => {
       <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
         <div>
           <strong className="text-[#0B1A30] font-bold block text-sm">Nexus Academy Uganda</strong>
-          <p className="text-slate-500 mt-0.5">Plot 12 Kampala Road, Uganda • Phone: +256 414 000 000</p>
+          <p className="text-slate-500 mt-0.5">Plot 12 ishaka, Uganda • Phone: +256 7569 08963</p>
         </div>
         <div className="text-slate-500 text-right sm:text-right">
           <p>© 2026 Nexus Academy. All rights reserved.</p>
