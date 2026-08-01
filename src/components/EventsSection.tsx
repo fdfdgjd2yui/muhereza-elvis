@@ -21,6 +21,82 @@ export const EventsSection: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null);
+  const [showReminderMenu, setShowReminderMenu] = useState(false);
+  const [reminderConfirmed, setReminderConfirmed] = useState(false);
+
+  const downloadIcsFile = (evt: EventItem) => {
+    const title = evt.title || 'Nexus Academy Event';
+    const description = evt.description || 'Nexus Academy Official Event';
+    const location = evt.location || 'Nexus Academy Campus';
+    
+    let startDateStr = '20260815T090000Z';
+    let endDateStr = '20260815T160000Z';
+    
+    try {
+      if (evt.date) {
+        const parsedDate = new Date(evt.date);
+        if (!isNaN(parsedDate.getTime())) {
+          const y = parsedDate.getUTCFullYear();
+          const m = String(parsedDate.getUTCMonth() + 1).padStart(2, '0');
+          const d = String(parsedDate.getUTCDate()).padStart(2, '0');
+          startDateStr = `${y}${m}${d}T090000Z`;
+          endDateStr = `${y}${m}${d}T160000Z`;
+        }
+      }
+    } catch (e) {
+      // fallback
+    }
+
+    const icsContent = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Nexus Academy Uganda//Events//EN',
+      'BEGIN:VEVENT',
+      `SUMMARY:${title}`,
+      `DESCRIPTION:${description.replace(/\n/g, '\\n')}`,
+      `LOCATION:${location}`,
+      `DTSTART:${startDateStr}`,
+      `DTEND:${endDateStr}`,
+      'BEGIN:VALARM',
+      'TRIGGER:-PT1H',
+      'ACTION:DISPLAY',
+      'DESCRIPTION:Reminder for Nexus Academy event',
+      'END:VALARM',
+      'END:VEVENT',
+      'END:VCALENDAR'
+    ].join('\r\n');
+
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.ics`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setReminderConfirmed(true);
+  };
+
+  const getGoogleCalendarUrl = (evt: EventItem) => {
+    const title = encodeURIComponent(evt.title || 'Nexus Academy Event');
+    const details = encodeURIComponent(`${evt.description || ''}\n\nNexus Academy Uganda`);
+    const location = encodeURIComponent(evt.location || 'Nexus Academy Campus');
+    
+    let dates = '20260815T090000Z/20260815T170000Z';
+    try {
+      if (evt.date) {
+        const parsedDate = new Date(evt.date);
+        if (!isNaN(parsedDate.getTime())) {
+          const y = parsedDate.getUTCFullYear();
+          const m = String(parsedDate.getUTCMonth() + 1).padStart(2, '0');
+          const d = String(parsedDate.getUTCDate()).padStart(2, '0');
+          dates = `${y}${m}${d}T090000Z/${y}${m}${d}T170000Z`;
+        }
+      }
+    } catch (e) {}
+
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dates}&details=${details}&location=${location}`;
+  };
 
   const fetchEvents = async () => {
     setIsLoading(true);
@@ -294,17 +370,73 @@ export const EventsSection: React.FC = () => {
                 </div>
               )}
 
+              {/* Calendar Reminder Options Box */}
+              {showReminderMenu && (
+                <div className="p-4 rounded-2xl bg-amber-50 border border-amber-300 space-y-3 animate-in fade-in duration-200">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-amber-950 uppercase tracking-wider flex items-center gap-1.5">
+                      <Bell className="w-4 h-4 text-amber-600" /> Choose Mobile / Desktop Calendar Option
+                    </span>
+                    <button
+                      onClick={() => setShowReminderMenu(false)}
+                      className="text-amber-800 hover:text-amber-950 text-xs font-bold"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {reminderConfirmed && (
+                    <div className="p-2.5 rounded-xl bg-emerald-100 border border-emerald-300 text-emerald-900 text-xs font-bold flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>Reminder scheduled! Event file downloaded for your phone calendar.</span>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    <a
+                      href={getGoogleCalendarUrl(selectedEvent)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => setReminderConfirmed(true)}
+                      className="p-3 rounded-xl bg-white border border-amber-200 hover:border-amber-400 font-bold text-[#0B1A30] flex items-center gap-2.5 shadow-sm hover:shadow transition-all"
+                    >
+                      <Calendar className="w-4 h-4 text-amber-600" />
+                      <div>
+                        <span className="block font-black">Google Calendar</span>
+                        <span className="text-[10px] text-slate-500 font-normal">Opens Google Calendar app</span>
+                      </div>
+                    </a>
+
+                    <button
+                      type="button"
+                      onClick={() => downloadIcsFile(selectedEvent)}
+                      className="p-3 rounded-xl bg-white border border-amber-200 hover:border-amber-400 font-bold text-[#0B1A30] flex items-center gap-2.5 shadow-sm hover:shadow transition-all text-left"
+                    >
+                      <Bell className="w-4 h-4 text-amber-600" />
+                      <div>
+                        <span className="block font-black">iPhone / Android (.ics)</span>
+                        <span className="text-[10px] text-slate-500 font-normal">Syncs with native Phone Calendar</span>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="pt-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
                 <button
-                  onClick={() => alert(`Reminder set for: ${selectedEvent.title}`)}
+                  onClick={() => setShowReminderMenu(!showReminderMenu)}
                   className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[#0B1A30] text-white text-xs font-bold hover:bg-slate-800 transition-colors flex items-center justify-center gap-2"
                 >
                   <Bell className="w-4 h-4 text-amber-400" />
-                  <span>Set Calendar Reminder</span>
+                  <span>{showReminderMenu ? 'Hide Reminder Options' : 'Set Calendar Reminder'}</span>
                 </button>
 
                 <button
-                  onClick={() => setSelectedEvent(null)}
+                  onClick={() => {
+                    setSelectedEvent(null);
+                    setShowReminderMenu(false);
+                    setReminderConfirmed(false);
+                  }}
                   className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold hover:bg-slate-200 transition-colors"
                 >
                   Close Window
