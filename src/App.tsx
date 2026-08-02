@@ -19,7 +19,7 @@ import { ProgramDetailPage } from './components/ProgramDetailPage';
 import { Footer } from './components/Footer';
 import { INITIAL_STUDENT_RESULTS } from './data/schoolData';
 import { StudentResult, Program } from './types';
-import { getAllStudentsFromFirestore } from './lib/firebase';
+import { subscribeToStudents } from './lib/firebase';
 import { ArrowLeft } from 'lucide-react';
 
 export default function App() {
@@ -42,17 +42,12 @@ export default function App() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   useEffect(() => {
-    async function syncFirestoreData() {
-      try {
-        const fetched = await getAllStudentsFromFirestore();
-        if (fetched && fetched.length > 0) {
-          setStudentResults(fetched);
-        }
-      } catch (err) {
-        console.warn("Could not sync students from Firestore on startup:", err);
+    const unsubscribe = subscribeToStudents((data) => {
+      if (data && data.length > 0) {
+        setStudentResults(data);
       }
-    }
-    syncFirestoreData();
+    });
+    return () => unsubscribe();
   }, []);
 
   const handleUpdateResults = (newResults: StudentResult[]) => {

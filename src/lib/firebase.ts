@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore, doc, getDoc, setDoc, deleteDoc, writeBatch, collection, getDocs } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, setDoc, deleteDoc, writeBatch, collection, getDocs, onSnapshot } from 'firebase/firestore';
 import firebaseConfigJson from '../../firebase-applet-config.json';
 import { StudentResult, GalleryItem, EventItem, NewsItem } from '../types';
 import { UPCOMING_EVENTS, INITIAL_GALLERY_ITEMS, NEWS_ARTICLES, INITIAL_STUDENT_RESULTS } from '../data/schoolData';
@@ -38,13 +38,21 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs = 6000): Promise<T> {
   ]);
 }
 
+export function encodeDocId(id: string): string {
+  return id.trim().toUpperCase().replace(/\//g, '__SLASH__');
+}
+
+export function decodeDocId(docId: string): string {
+  return docId.replace(/__SLASH__/g, '/');
+}
+
 /**
  * Fetch all student records stored in Firestore
  */
 export async function getAllStudentsFromFirestore(): Promise<StudentResult[]> {
   if (isFirebaseConfigured) {
     try {
-      const snap = await withTimeout(getDocs(collection(db, 'students')), 6000);
+      const snap = await withTimeout(getDocs(collection(db, 'students')), 8000);
       if (!snap.empty) {
         const items: StudentResult[] = [];
         snap.forEach((docSnap) => {
@@ -71,6 +79,53 @@ export async function getAllStudentsFromFirestore(): Promise<StudentResult[]> {
   return INITIAL_STUDENT_RESULTS;
 }
 
+let isStudentsSeeding = false;
+
+/**
+ * Real-time listener for students collection.
+ * Automatically pushes updates to callback whenever data changes on ANY device or browser.
+ */
+export function subscribeToStudents(callback: (students: StudentResult[]) => void): () => void {
+  if (!isFirebaseConfigured) {
+    const saved = localStorage.getItem('nexus_student_results');
+    if (saved) {
+      try { callback(JSON.parse(saved)); } catch (e) { callback(INITIAL_STUDENT_RESULTS); }
+    } else {
+      callback(INITIAL_STUDENT_RESULTS);
+    }
+    return () => {};
+  }
+
+  const unsubscribe = onSnapshot(collection(db, 'students'), async (snap) => {
+    if (snap.empty && !isStudentsSeeding) {
+      isStudentsSeeding = true;
+      try {
+        await syncStudentsToFirestore(INITIAL_STUDENT_RESULTS);
+      } catch (e) {
+        console.warn("Error seeding students:", e);
+      }
+      return;
+    }
+
+    if (!snap.empty) {
+      const items: StudentResult[] = [];
+      snap.forEach((docSnap) => {
+        items.push(docSnap.data() as StudentResult);
+      });
+      localStorage.setItem('nexus_student_results', JSON.stringify(items));
+      callback(items);
+    }
+  }, (err) => {
+    console.warn("Firestore students onSnapshot notice:", err);
+    const saved = localStorage.getItem('nexus_student_results');
+    if (saved) {
+      try { callback(JSON.parse(saved)); } catch (e) { callback(INITIAL_STUDENT_RESULTS); }
+    }
+  });
+
+  return unsubscribe;
+}
+
 /**
  * Fetch a single student result directly by their exact document ID (Index Number)
  * E.g., doc(db, 'students', indexNumber)
@@ -82,7 +137,8 @@ export async function getStudentFromFirestore(indexNumber: string): Promise<Stud
 
   if (isFirebaseConfigured) {
     try {
-      const docRef = doc(db, 'students', cleanId);
+      const encodedId = encodeDocId(cleanId);
+      const docRef = doc(db, 'students', encodedId);
       const docSnap = await withTimeout(getDoc(docRef), 6000);
 
       if (docSnap.exists()) {
@@ -90,7 +146,7 @@ export async function getStudentFromFirestore(indexNumber: string): Promise<Stud
       }
 
       if (normalizedIndex !== cleanId) {
-        const docRefNorm = doc(db, 'students', normalizedIndex);
+        const docRefNorm = doc(db, 'students', encodeDocId(normalizedIndex));
         const docSnapNorm = await withTimeout(getDoc(docRefNorm), 6000);
         if (docSnapNorm.exists()) {
           return docSnapNorm.data() as StudentResult;
@@ -117,30 +173,50 @@ export async function getStudentFromFirestore(indexNumber: string): Promise<Stud
 }
 
 /**
- * Batch upload/merge student records to Firestore using EXACT Index Number as Document ID
- * Firestore document path: /students/{indexNumber}
+ * Batch upload/merge student records to Firestore using encoded Index Number as Document ID
+ * Firestore document path: /students/{encodedIndexNumber}
  */
 export async function syncStudentsToFirestore(students: StudentResult[]): Promise<{ count: number; success: boolean }> {
+  // Update local storage cache immediately
+  const saved = localStorage.getItem('nexus_student_results');
+  let currentList: StudentResult[] = [];
+  if (saved !== null) {
+    try {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) currentList = parsed;
+    } catch (e) {}
+  }
+
+  const mergedMap = new Map<string, StudentResult>();
+  currentList.forEach(s => mergedMap.set(s.indexNumber.trim().toUpperCase(), s));
+  students.forEach(s => mergedMap.set(s.indexNumber.trim().toUpperCase(), s));
+  const updatedAll = Array.from(mergedMap.values());
+  localStorage.setItem('nexus_student_results', JSON.stringify(updatedAll));
+
   if (!isFirebaseConfigured) {
     return { count: students.length, success: true };
   }
-  try {
-    const batch = writeBatch(db);
-    
-    students.forEach((student) => {
-      const docId = student.indexNumber.trim().toUpperCase();
-      const docRef = doc(db, 'students', docId);
-      batch.set(docRef, {
-        ...student,
-        updatedAt: new Date().toISOString()
-      }, { merge: true });
-    });
 
-    await withTimeout(batch.commit());
+  try {
+    const chunkSize = 400;
+    for (let i = 0; i < students.length; i += chunkSize) {
+      const chunk = students.slice(i, i + chunkSize);
+      const batch = writeBatch(db);
+      chunk.forEach((student) => {
+        const rawId = student.indexNumber.trim().toUpperCase();
+        const docId = encodeDocId(rawId);
+        const docRef = doc(db, 'students', docId);
+        batch.set(docRef, {
+          ...student,
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
+      });
+      await withTimeout(batch.commit(), 15000);
+    }
     return { count: students.length, success: true };
-  } catch (err) {
-    console.warn("Firestore batch upload notice (falling back to application local store):", err);
-    return { count: students.length, success: true };
+  } catch (err: any) {
+    console.error("Firestore batch upload error:", err);
+    throw new Error(err?.message || "Firestore upload failed");
   }
 }
 
@@ -148,7 +224,9 @@ export async function syncStudentsToFirestore(students: StudentResult[]): Promis
  * Delete a single student document from Firestore by index number
  */
 export async function deleteStudentFromFirestore(indexNumber: string): Promise<boolean> {
-  const docId = indexNumber.trim().toUpperCase();
+  const cleanId = indexNumber.trim().toUpperCase();
+  const encodedId = encodeDocId(cleanId);
+
   const saved = localStorage.getItem('nexus_student_results');
   let currentList: StudentResult[] = INITIAL_STUDENT_RESULTS;
   if (saved !== null) {
@@ -157,13 +235,12 @@ export async function deleteStudentFromFirestore(indexNumber: string): Promise<b
       if (Array.isArray(parsed)) currentList = parsed;
     } catch (e) {}
   }
-  const filtered = currentList.filter(s => s.indexNumber.trim().toUpperCase() !== docId);
+  const filtered = currentList.filter(s => s.indexNumber.trim().toUpperCase() !== cleanId);
   localStorage.setItem('nexus_student_results', JSON.stringify(filtered));
 
   if (!isFirebaseConfigured) return true;
   try {
-    const docRef = doc(db, 'students', docId);
-    await withTimeout(deleteDoc(docRef));
+    await withTimeout(deleteDoc(doc(db, 'students', encodedId)), 6000);
     return true;
   } catch (err) {
     console.warn("Firestore document deletion notice:", err);
@@ -179,12 +256,16 @@ export async function clearAllStudentsFromFirestore(indexNumbers: string[]): Pro
 
   if (!isFirebaseConfigured) return true;
   try {
-    const batch = writeBatch(db);
-    indexNumbers.forEach((id) => {
-      const docRef = doc(db, 'students', id.trim().toUpperCase());
-      batch.delete(docRef);
-    });
-    await withTimeout(batch.commit());
+    const chunkSize = 400;
+    for (let i = 0; i < indexNumbers.length; i += chunkSize) {
+      const chunk = indexNumbers.slice(i, i + chunkSize);
+      const batch = writeBatch(db);
+      chunk.forEach((id) => {
+        const encodedId = encodeDocId(id);
+        batch.delete(doc(db, 'students', encodedId));
+      });
+      await withTimeout(batch.commit(), 15000);
+    }
     return true;
   } catch (err) {
     console.warn("Firestore batch delete notice:", err);
@@ -421,6 +502,45 @@ export async function getGalleryFromFirestore(): Promise<GalleryItem[]> {
   return [];
 }
 
+/**
+ * Real-time listener for gallery collection.
+ * Syncs gallery photos across all devices instantly.
+ */
+export function subscribeToGallery(callback: (items: GalleryItem[]) => void): () => void {
+  if (!isFirebaseConfigured) {
+    const saved = localStorage.getItem('nexus_gallery_items');
+    if (saved) {
+      try { callback(JSON.parse(saved)); } catch (e) { callback([]); }
+    } else {
+      callback([]);
+    }
+    return () => {};
+  }
+
+  const unsubscribe = onSnapshot(collection(db, 'gallery'), (snap) => {
+    if (!snap.empty) {
+      const items: GalleryItem[] = [];
+      snap.forEach((docSnap) => {
+        items.push(docSnap.data() as GalleryItem);
+      });
+      const filtered = items.filter(i => !['gal_1', 'gal_2', 'gal_3', 'gal_4', 'gal_5'].includes(i.id));
+      localStorage.setItem('nexus_gallery_items', JSON.stringify(filtered));
+      callback(filtered);
+    } else {
+      localStorage.setItem('nexus_gallery_items', JSON.stringify([]));
+      callback([]);
+    }
+  }, (err) => {
+    console.warn("Firestore gallery onSnapshot notice:", err);
+    const saved = localStorage.getItem('nexus_gallery_items');
+    if (saved) {
+      try { callback(JSON.parse(saved)); } catch (e) { callback([]); }
+    }
+  });
+
+  return unsubscribe;
+}
+
 export async function addGalleryItemToFirestore(item: GalleryItem): Promise<boolean> {
   const current = await getGalleryFromFirestore();
   const updated = [item, ...current.filter(i => i.id !== item.id)];
@@ -495,6 +615,55 @@ export async function getEventsFromFirestore(): Promise<EventItem[]> {
 
   localStorage.setItem('nexus_events_items', JSON.stringify(UPCOMING_EVENTS));
   return UPCOMING_EVENTS;
+}
+
+let isEventsSeeding = false;
+
+/**
+ * Real-time listener for events collection.
+ * Syncs events across all devices instantly in real-time.
+ */
+export function subscribeToEvents(callback: (events: EventItem[]) => void): () => void {
+  if (!isFirebaseConfigured) {
+    const saved = localStorage.getItem('nexus_events_items');
+    if (saved) {
+      try { callback(JSON.parse(saved)); } catch (e) { callback(UPCOMING_EVENTS); }
+    } else {
+      callback(UPCOMING_EVENTS);
+    }
+    return () => {};
+  }
+
+  const unsubscribe = onSnapshot(collection(db, 'events'), async (snap) => {
+    if (snap.empty && !isEventsSeeding) {
+      isEventsSeeding = true;
+      try {
+        for (const evt of UPCOMING_EVENTS) {
+          await setDoc(doc(db, 'events', evt.id), { ...evt, createdAt: new Date().toISOString() });
+        }
+      } catch (e) {
+        console.warn("Error seeding events:", e);
+      }
+      return;
+    }
+
+    if (!snap.empty) {
+      const items: EventItem[] = [];
+      snap.forEach((docSnap) => {
+        items.push(docSnap.data() as EventItem);
+      });
+      localStorage.setItem('nexus_events_items', JSON.stringify(items));
+      callback(items);
+    }
+  }, (err) => {
+    console.warn("Firestore events onSnapshot notice:", err);
+    const saved = localStorage.getItem('nexus_events_items');
+    if (saved) {
+      try { callback(JSON.parse(saved)); } catch (e) { callback(UPCOMING_EVENTS); }
+    }
+  });
+
+  return unsubscribe;
 }
 
 export async function addEventToFirestore(item: EventItem): Promise<boolean> {

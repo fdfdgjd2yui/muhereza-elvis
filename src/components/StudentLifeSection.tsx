@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { GalleryItem } from '../types';
-import { getGalleryFromFirestore } from '../lib/firebase';
+import { subscribeToGallery } from '../lib/firebase';
 import { Maximize2, X, Camera, Image as ImageIcon, Sparkles } from 'lucide-react';
 
 export const StudentLifeSection: React.FC = () => {
@@ -8,15 +8,11 @@ export const StudentLifeSection: React.FC = () => {
   const [selectedImage, setSelectedImage] = useState<GalleryItem | null>(null);
   const [items, setItems] = useState<GalleryItem[]>([]);
 
-  const fetchItems = async () => {
-    const data = await getGalleryFromFirestore();
-    setItems(data);
-  };
-
   useEffect(() => {
-    fetchItems();
-    window.addEventListener('nexus_gallery_updated', fetchItems);
-    return () => window.removeEventListener('nexus_gallery_updated', fetchItems);
+    const unsubscribe = subscribeToGallery((data) => {
+      setItems(data);
+    });
+    return () => unsubscribe();
   }, []);
 
   const filteredItems = items;

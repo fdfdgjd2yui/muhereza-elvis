@@ -7,9 +7,11 @@ import {
   deleteStudentFromFirestore, 
   clearAllStudentsFromFirestore,
   getEventsFromFirestore,
+  subscribeToEvents,
   addEventToFirestore,
   deleteEventFromFirestore,
   getGalleryFromFirestore,
+  subscribeToGallery,
   addGalleryItemToFirestore,
   deleteGalleryItemFromFirestore
 } from '../lib/firebase';
@@ -92,6 +94,12 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
   useEffect(() => {
     if (isOpen && isAuthenticated) {
       loadData();
+      const unsubEvents = subscribeToEvents((data) => setEventItems(data));
+      const unsubGallery = subscribeToGallery((data) => setGalleryItems(data));
+      return () => {
+        unsubEvents();
+        unsubGallery();
+      };
     }
   }, [isOpen, isAuthenticated]);
 

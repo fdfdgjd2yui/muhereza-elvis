@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { EventItem } from '../types';
-import { getEventsFromFirestore } from '../lib/firebase';
+import { subscribeToEvents } from '../lib/firebase';
 import { 
   Calendar, 
   Clock, 
@@ -98,17 +98,13 @@ export const EventsSection: React.FC = () => {
     return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dates}&details=${details}&location=${location}`;
   };
 
-  const fetchEvents = async () => {
-    setIsLoading(true);
-    const data = await getEventsFromFirestore();
-    setEvents(data);
-    setIsLoading(false);
-  };
-
   useEffect(() => {
-    fetchEvents();
-    window.addEventListener('nexus_events_updated', fetchEvents);
-    return () => window.removeEventListener('nexus_events_updated', fetchEvents);
+    setIsLoading(true);
+    const unsubscribe = subscribeToEvents((data) => {
+      setEvents(data);
+      setIsLoading(false);
+    });
+    return () => unsubscribe();
   }, []);
 
   const categories = [
