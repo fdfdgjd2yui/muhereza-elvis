@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
 import { HeroSection } from './components/HeroSection';
 import { StatsSection } from './components/StatsSection';
@@ -19,6 +19,7 @@ import { ProgramDetailPage } from './components/ProgramDetailPage';
 import { Footer } from './components/Footer';
 import { INITIAL_STUDENT_RESULTS } from './data/schoolData';
 import { StudentResult, Program } from './types';
+import { getAllStudentsFromFirestore } from './lib/firebase';
 import { ArrowLeft } from 'lucide-react';
 
 export default function App() {
@@ -29,7 +30,7 @@ export default function App() {
     if (saved !== null) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       } catch (err) {
         console.warn('Failed to parse saved student results:', err);
       }
@@ -39,6 +40,20 @@ export default function App() {
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isApplyOpen, setIsApplyOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  useEffect(() => {
+    async function syncFirestoreData() {
+      try {
+        const fetched = await getAllStudentsFromFirestore();
+        if (fetched && fetched.length > 0) {
+          setStudentResults(fetched);
+        }
+      } catch (err) {
+        console.warn("Could not sync students from Firestore on startup:", err);
+      }
+    }
+    syncFirestoreData();
+  }, []);
 
   const handleUpdateResults = (newResults: StudentResult[]) => {
     setStudentResults(newResults);

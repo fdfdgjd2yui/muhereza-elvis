@@ -1,32 +1,35 @@
 /// <reference types="vite/client" />
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore, doc, getDoc, setDoc, deleteDoc, writeBatch, collection, getDocs } from 'firebase/firestore';
+import firebaseConfigJson from '../../firebase-applet-config.json';
 import { StudentResult, GalleryItem, EventItem, NewsItem } from '../types';
 import { UPCOMING_EVENTS, INITIAL_GALLERY_ITEMS, NEWS_ARTICLES, INITIAL_STUDENT_RESULTS } from '../data/schoolData';
 
+const firebaseConfig = {
+  apiKey: firebaseConfigJson?.apiKey || import.meta.env.VITE_FIREBASE_API_KEY || "demo-api-key",
+  authDomain: firebaseConfigJson?.authDomain || import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "nexus-academy.firebaseapp.com",
+  projectId: firebaseConfigJson?.projectId || import.meta.env.VITE_FIREBASE_PROJECT_ID || "nexus-academy",
+  storageBucket: firebaseConfigJson?.storageBucket || import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "nexus-academy.appspot.com",
+  messagingSenderId: firebaseConfigJson?.messagingSenderId || import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "1234567890",
+  appId: firebaseConfigJson?.appId || import.meta.env.VITE_FIREBASE_APP_ID || "1:1234567890:web:abc123def456",
+  firestoreDatabaseId: firebaseConfigJson?.firestoreDatabaseId || undefined
+};
+
 // Check if Firebase is configured with real credentials
 export const isFirebaseConfigured = Boolean(
-  import.meta.env.VITE_FIREBASE_API_KEY &&
-  import.meta.env.VITE_FIREBASE_PROJECT_ID &&
-  import.meta.env.VITE_FIREBASE_API_KEY !== 'demo-api-key'
+  firebaseConfig.apiKey &&
+  firebaseConfig.projectId &&
+  firebaseConfig.apiKey !== 'demo-api-key'
 );
-
-// Optional Firebase credentials setup (reads from environment if configured)
-const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "demo-api-key",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "nexus-academy.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "nexus-academy",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "nexus-academy.appspot.com",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "1234567890",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:1234567890:web:abc123def456"
-};
 
 // Initialize Firebase App safely
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-export const db = getFirestore(app);
+export const db = firebaseConfig.firestoreDatabaseId
+  ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
+  : getFirestore(app);
 
 // Timeout wrapper helper to prevent long unhandled connection hangs
-function withTimeout<T>(promise: Promise<T>, timeoutMs = 2500): Promise<T> {
+function withTimeout<T>(promise: Promise<T>, timeoutMs = 6000): Promise<T> {
   return Promise.race([
     promise,
     new Promise<T>((_, reject) =>
@@ -36,24 +39,81 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs = 2500): Promise<T> {
 }
 
 /**
+ * Fetch all student records stored in Firestore
+ */
+export async function getAllStudentsFromFirestore(): Promise<StudentResult[]> {
+  if (isFirebaseConfigured) {
+    try {
+      const snap = await withTimeout(getDocs(collection(db, 'students')), 6000);
+      if (!snap.empty) {
+        const items: StudentResult[] = [];
+        snap.forEach((docSnap) => {
+          items.push(docSnap.data() as StudentResult);
+        });
+        localStorage.setItem('nexus_student_results', JSON.stringify(items));
+        return items;
+      }
+    } catch (err) {
+      console.warn("Firestore students query notice:", err);
+    }
+  }
+
+  const saved = localStorage.getItem('nexus_student_results');
+  if (saved !== null) {
+    try {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    } catch (err) {
+      console.warn("Failed to parse saved students:", err);
+    }
+  }
+
+  return INITIAL_STUDENT_RESULTS;
+}
+
+/**
  * Fetch a single student result directly by their exact document ID (Index Number)
  * E.g., doc(db, 'students', indexNumber)
  */
 export async function getStudentFromFirestore(indexNumber: string): Promise<StudentResult | null> {
-  const normalizedIndex = indexNumber.trim().toUpperCase();
-  if (!normalizedIndex || !isFirebaseConfigured) return null;
+  const cleanId = indexNumber.trim().toUpperCase();
+  const normalizedIndex = cleanId.replace(/[\s/]/g, '');
+  if (!cleanId) return null;
 
-  try {
-    const docRef = doc(db, 'students', normalizedIndex);
-    const docSnap = await withTimeout(getDoc(docRef));
+  if (isFirebaseConfigured) {
+    try {
+      const docRef = doc(db, 'students', cleanId);
+      const docSnap = await withTimeout(getDoc(docRef), 6000);
 
-    if (docSnap.exists()) {
-      return docSnap.data() as StudentResult;
+      if (docSnap.exists()) {
+        return docSnap.data() as StudentResult;
+      }
+
+      if (normalizedIndex !== cleanId) {
+        const docRefNorm = doc(db, 'students', normalizedIndex);
+        const docSnapNorm = await withTimeout(getDoc(docRefNorm), 6000);
+        if (docSnapNorm.exists()) {
+          return docSnapNorm.data() as StudentResult;
+        }
+      }
+    } catch (err) {
+      console.warn("Firestore live query note:", err);
     }
-  } catch (err) {
-    console.warn("Firestore live query note (using local state fallback):", err);
   }
-  return null;
+
+  const saved = localStorage.getItem('nexus_student_results');
+  let currentList: StudentResult[] = INITIAL_STUDENT_RESULTS;
+  if (saved !== null) {
+    try {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) currentList = parsed;
+    } catch (e) {}
+  }
+
+  return currentList.find(s => 
+    s.indexNumber.trim().toUpperCase() === cleanId ||
+    s.indexNumber.replace(/[\s/]/g, '').toUpperCase() === normalizedIndex
+  ) || null;
 }
 
 /**

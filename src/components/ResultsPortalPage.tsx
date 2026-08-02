@@ -103,24 +103,6 @@ export const ResultsPortalPage: React.FC<ResultsPortalPageProps> = ({
             </button>
           </div>
         </div>
-
-        {/* Quick Sample Links */}
-        <div className="flex items-center gap-2 text-xs text-slate-500">
-          <span>Sample numbers:</span>
-          {['U0001/001', 'U0001/002', 'U0001/003', 'U0001/010'].map((sample) => (
-            <button
-              key={sample}
-              type="button"
-              onClick={() => {
-                setIndexNumberInput(sample);
-                setErrorMessage(null);
-              }}
-              className="font-mono underline text-[#0B1A30] hover:text-blue-700"
-            >
-              {sample}
-            </button>
-          ))}
-        </div>
       </form>
 
       {/* Searching Data Delay Indicator */}
