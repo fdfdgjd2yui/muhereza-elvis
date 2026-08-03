@@ -281,15 +281,28 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
     }
   };
 
+  // Helper to extract primary student identifier from flexible keys
+  const getStudentId = (student: any): string => {
+    if (student.indexNumber) return String(student.indexNumber);
+    if (student.id) return String(student.id);
+    const key = Object.keys(student).find(k => {
+      const lk = k.toLowerCase();
+      return lk.includes('index') || lk.includes('id') || lk.includes('number');
+    });
+    if (key && student[key]) return String(student[key]);
+    const firstKey = Object.keys(student)[0];
+    return firstKey ? String(student[firstKey]) : '';
+  };
+
   // Student Deletion
-  const handleDeleteStudent = async (indexNumber: string) => {
+  const handleDeleteStudent = async (studentId: string) => {
     try {
-      const targetId = indexNumber.trim().toUpperCase();
+      const targetId = studentId.trim().toUpperCase();
       await deleteStudentFromFirestore(targetId);
-      const updated = studentResults.filter(s => s.indexNumber.trim().toUpperCase() !== targetId);
+      const updated = studentResults.filter(s => getStudentId(s).trim().toUpperCase() !== targetId);
       onUpdateResults(updated);
       setDeletingStudentId(null);
-      showToast('success', `Deleted student record for Index No: ${indexNumber}`);
+      showToast('success', `Deleted student record: ${studentId}`);
     } catch (err: any) {
       showToast('error', `Deletion failed: ${err?.message || 'Error'}`);
     }
@@ -297,7 +310,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
 
   const handleClearAllStudents = async () => {
     try {
-      const ids = studentResults.map(s => s.indexNumber);
+      const ids = studentResults.map(s => getStudentId(s));
       await clearAllStudentsFromFirestore(ids);
       onUpdateResults([]);
       setIsConfirmingClearAll(false);
@@ -307,10 +320,71 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
     }
   };
 
-  const filteredStudents = studentResults.filter(s =>
-    s.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    s.indexNumber.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Flexible search filter across all record fields
+  const filteredStudents = studentResults.filter(s => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return Object.values(s).some(val => {
+      if (val === null || val === undefined) return false;
+      if (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean') {
+        return String(val).toLowerCase().includes(q);
+      }
+      if (Array.isArray(val)) {
+        return val.some(item => {
+          if (typeof item === 'object' && item !== null) {
+            return Object.values(item).some(v => String(v).toLowerCase().includes(q));
+          }
+          return String(item).toLowerCase().includes(q);
+        });
+      }
+      if (typeof val === 'object') {
+        return Object.values(val).some(v => String(v).toLowerCase().includes(q));
+      }
+      return false;
+    });
+  });
+
+  // Dynamic headers extracted directly from the keys of the first object in data array
+  const dynamicHeaders = studentResults.length > 0 ? Object.keys(studentResults[0]) : [];
+
+  // Capitalize first letter of each word in dynamic header title
+  const formatHeaderTitle = (key: string): string => {
+    const words = key
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .replace(/[_-]+/g, ' ')
+      .trim();
+    return words
+      .split(/\s+/)
+      .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(' ');
+  };
+
+  // Format dynamic cell value (arrays, objects, dash-lists, or strings)
+  const formatCellValue = (val: any): string => {
+    if (val === null || val === undefined || val === '') {
+      return '-';
+    }
+    if (Array.isArray(val)) {
+      if (val.length === 0) return '-';
+      return val
+        .map(item => {
+          if (typeof item === 'object' && item !== null) {
+            if (item.name && item.grade) return `${item.name} (${item.grade})`;
+            if (item.name && item.score) return `${item.name} (${item.score})`;
+            if (item.code && item.grade) return `${item.code}: ${item.grade}`;
+            return Object.values(item).filter(Boolean).join(' ');
+          }
+          return String(item);
+        })
+        .join(', ');
+    }
+    if (typeof val === 'object') {
+      return Object.entries(val)
+        .map(([k, v]) => `${k}: ${v}`)
+        .join(', ');
+    }
+    return String(val);
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in overflow-y-auto">
@@ -800,62 +874,78 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
 
                 <div className="overflow-x-auto border border-slate-200 rounded-xl max-h-72">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                    <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 sticky top-0 z-10">
                       <tr>
-                        <th className="p-2.5">Index No</th>
-                        <th className="p-2.5">Student Name</th>
-                        <th className="p-2.5">Level</th>
-                        <th className="p-2.5">Division / Class</th>
-                        <th className="p-2.5">Aggs / Pts</th>
-                        <th className="p-2.5 text-right">Action</th>
+                        {dynamicHeaders.map((headerKey) => (
+                          <th key={headerKey} className="p-2.5 whitespace-nowrap">
+                            {formatHeaderTitle(headerKey)}
+                          </th>
+                        ))}
+                        <th className="p-2.5 text-right whitespace-nowrap">Action</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200">
                       {filteredStudents.length === 0 ? (
                         <tr>
-                          <td colSpan={6} className="p-4 text-center text-slate-500 italic">
-                            No student records found.
+                          <td colSpan={dynamicHeaders.length + 1} className="p-6 text-center text-slate-500 italic">
+                            No records found.
                           </td>
                         </tr>
                       ) : (
-                        filteredStudents.map((s) => (
-                          <tr key={s.indexNumber} className="hover:bg-slate-50">
-                            <td className="p-2.5 font-mono font-bold text-[#0B1A30]">{s.indexNumber}</td>
-                            <td className="p-2.5 font-semibold text-slate-800">{s.studentName}</td>
-                            <td className="p-2.5 text-slate-600">{s.level}</td>
-                            <td className="p-2.5 text-slate-600">{s.divisionOrClass}</td>
-                            <td className="p-2.5 text-slate-600">{s.aggregatesOrPoints}</td>
-                            <td className="p-2.5 text-right">
-                              {deletingStudentId === s.indexNumber ? (
-                                <div className="inline-flex items-center gap-1 bg-red-100 p-1 rounded-lg border border-red-300">
+                        filteredStudents.map((s, sIdx) => {
+                          const studentId = getStudentId(s);
+                          const rowKey = studentId || `student-${sIdx}`;
+                          return (
+                            <tr key={rowKey} className="hover:bg-slate-50">
+                              {dynamicHeaders.map((headerKey) => {
+                                const cellVal = (s as any)[headerKey];
+                                const lk = headerKey.toLowerCase();
+                                const isAnchor = lk.includes('index') || lk.includes('id') || lk.includes('number');
+                                return (
+                                  <td
+                                    key={headerKey}
+                                    className={`p-2.5 ${
+                                      isAnchor
+                                        ? 'font-mono font-bold text-[#0B1A30] whitespace-nowrap'
+                                        : 'text-slate-800'
+                                    }`}
+                                  >
+                                    {formatCellValue(cellVal)}
+                                  </td>
+                                );
+                              })}
+                              <td className="p-2.5 text-right whitespace-nowrap">
+                                {deletingStudentId === studentId ? (
+                                  <div className="inline-flex items-center gap-1 bg-red-100 p-1 rounded-lg border border-red-300">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteStudent(studentId)}
+                                      className="px-2 py-0.5 rounded bg-red-600 text-white text-[10px] font-extrabold hover:bg-red-700 transition-colors"
+                                    >
+                                      Confirm
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setDeletingStudentId(null)}
+                                      className="px-2 py-0.5 rounded bg-slate-200 text-slate-700 text-[10px] font-bold hover:bg-slate-300 transition-colors"
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
+                                ) : (
                                   <button
                                     type="button"
-                                    onClick={() => handleDeleteStudent(s.indexNumber)}
-                                    className="px-2 py-0.5 rounded bg-red-600 text-white text-[10px] font-extrabold hover:bg-red-700 transition-colors"
+                                    onClick={() => setDeletingStudentId(studentId)}
+                                    className="p-1 rounded bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                                    title="Delete student record"
                                   >
-                                    Confirm
+                                    <Trash2 className="w-3.5 h-3.5" />
                                   </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => setDeletingStudentId(null)}
-                                    className="px-2 py-0.5 rounded bg-slate-200 text-slate-700 text-[10px] font-bold hover:bg-slate-300 transition-colors"
-                                  >
-                                    Cancel
-                                  </button>
-                                </div>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={() => setDeletingStudentId(s.indexNumber)}
-                                  className="p-1 rounded bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
-                                  title="Delete student record"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        ))
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })
                       )}
                     </tbody>
                   </table>
