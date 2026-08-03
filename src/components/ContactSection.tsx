@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { MapPin, Phone, Mail, Clock, Send, CheckCircle2, MessageSquare } from 'lucide-react';
+import { MapPin, Phone, Mail, Clock, Send, CheckCircle2, MessageSquare, AlertCircle } from 'lucide-react';
+import { isValidUgandanPhone, isValidGmail } from '../lib/validation';
 
 export const ContactSection: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -9,11 +10,28 @@ export const ContactSection: React.FC = () => {
     programInterest: 'O Level',
     message: ''
   });
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name) return;
+    setPhoneError(null);
+    setEmailError(null);
+
+    let hasError = false;
+
+    if (!isValidUgandanPhone(formData.phone)) {
+      setPhoneError('Invalid phone number. Must be a valid Ugandan MTN (077, 078, 076) or Airtel (070, 075, 074) number (e.g. 0772123456 or +256772123456).');
+      hasError = true;
+    }
+
+    if (formData.email && !isValidGmail(formData.email)) {
+      setEmailError('Invalid email address. Must be a valid Gmail account terminating with @gmail.com.');
+      hasError = true;
+    }
+
+    if (hasError || !formData.name) return;
     setSubmitted(true);
 
     // Open WhatsApp directly with inquiry text
@@ -134,28 +152,50 @@ export const ContactSection: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block mb-1">Email Address</label>
+                      <label className="block mb-1">Gmail Address (@gmail.com)</label>
                       <input
                         type="email"
                         value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        placeholder="joseph@example.com"
-                        className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-slate-900 bg-white focus:outline-none focus:border-[#0B1A30]"
+                        onChange={(e) => {
+                          setFormData({ ...formData, email: e.target.value });
+                          if (emailError) setEmailError(null);
+                        }}
+                        placeholder="joseph@gmail.com"
+                        className={`w-full px-3 py-2.5 rounded-xl border text-slate-900 bg-white focus:outline-none ${
+                          emailError ? 'border-red-500 bg-red-50/50' : 'border-slate-300 focus:border-[#0B1A30]'
+                        }`}
                       />
+                      {emailError && (
+                        <p className="text-[11px] font-semibold text-red-600 mt-1 flex items-center gap-1">
+                          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                          <span>{emailError}</span>
+                        </p>
+                      )}
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block mb-1">Phone Number *</label>
+                      <label className="block mb-1">MTN / Airtel Phone Number *</label>
                       <input
                         type="tel"
                         required
                         value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                        placeholder="+256 700 000 000"
-                        className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-slate-900 bg-white focus:outline-none focus:border-[#0B1A30]"
+                        onChange={(e) => {
+                          setFormData({ ...formData, phone: e.target.value });
+                          if (phoneError) setPhoneError(null);
+                        }}
+                        placeholder="e.g. 0772123456 or +256772123456"
+                        className={`w-full px-3 py-2.5 rounded-xl border text-slate-900 bg-white focus:outline-none ${
+                          phoneError ? 'border-red-500 bg-red-50/50' : 'border-slate-300 focus:border-[#0B1A30]'
+                        }`}
                       />
+                      {phoneError && (
+                        <p className="text-[11px] font-semibold text-red-600 mt-1 flex items-center gap-1">
+                          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                          <span>{phoneError}</span>
+                        </p>
+                      )}
                     </div>
 
                     <div>

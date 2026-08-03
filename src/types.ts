@@ -84,23 +84,29 @@ export interface FaqItem {
   category: string;
 }
 
+export interface SubjectResult {
+  code: string;
+  name: string;
+  score?: number;
+  grade: string;
+  remark?: string;
+  scoreName?: string;
+}
+
 export interface StudentResult {
   indexNumber: string;
   studentName: string;
   level: 'UCE' | 'UACE';
   examYear: number;
   gender: 'M' | 'F';
-  combinationOrStream: string;
-  aggregatesOrPoints: string;
-  divisionOrClass: string;
-  subjects: {
-    code: string;
-    name: string;
-    grade: string;
-    scoreName: string;
-  }[];
-  headteacherRemark: string;
-  verifiedStatus: boolean;
+  aggregates?: number;
+  division?: string;
+  combinationOrStream?: string;
+  aggregatesOrPoints?: string;
+  divisionOrClass?: string;
+  subjects: SubjectResult[];
+  headteacherRemark?: string;
+  verifiedStatus?: boolean;
 }
 
 export interface GoogleSheetsConfig {

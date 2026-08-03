@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { X, Send, CheckCircle2, Shield, Upload, FileCheck, Trash2 } from 'lucide-react';
+import { X, Send, CheckCircle2, Shield, Upload, FileCheck, Trash2, AlertCircle } from 'lucide-react';
+import { isValidUgandanPhone, isValidGmail } from '../lib/validation';
 
 interface ApplyModalProps {
   isOpen: boolean;
@@ -9,6 +10,8 @@ interface ApplyModalProps {
 export const ApplyModal: React.FC<ApplyModalProps> = ({ isOpen, onClose }) => {
   const [submitted, setSubmitted] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     studentName: '',
     dob: '',
@@ -38,6 +41,23 @@ export const ApplyModal: React.FC<ApplyModalProps> = ({ isOpen, onClose }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setPhoneError(null);
+    setEmailError(null);
+
+    let hasError = false;
+
+    if (!isValidUgandanPhone(formData.parentPhone)) {
+      setPhoneError('Invalid phone number. Must be a valid Ugandan MTN (077, 078, 076) or Airtel (070, 075, 074) number (e.g. 0772123456 or +256772123456).');
+      hasError = true;
+    }
+
+    if (formData.parentEmail && !isValidGmail(formData.parentEmail)) {
+      setEmailError('Invalid email address. Must be a valid Gmail account terminating with @gmail.com.');
+      hasError = true;
+    }
+
+    if (hasError) return;
+
     setSubmitted(true);
   };
 
@@ -148,27 +168,49 @@ export const ApplyModal: React.FC<ApplyModalProps> = ({ isOpen, onClose }) => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#0B1A30] uppercase mb-1">Parent Phone Number *</label>
+                  <label className="block text-xs font-bold text-[#0B1A30] uppercase mb-1">Parent Phone Number (MTN/Airtel) *</label>
                   <input
                     type="tel"
                     required
-                    placeholder="+256 772 000 000"
+                    placeholder="e.g. 0772123456 or +256772123456"
                     value={formData.parentPhone}
-                    onChange={(e) => setFormData({ ...formData, parentPhone: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-300 text-xs bg-slate-50 text-slate-900 focus:outline-none focus:border-[#0B1A30]"
+                    onChange={(e) => {
+                      setFormData({ ...formData, parentPhone: e.target.value });
+                      if (phoneError) setPhoneError(null);
+                    }}
+                    className={`w-full px-4 py-3 rounded-xl border text-xs bg-slate-50 text-slate-900 focus:outline-none ${
+                      phoneError ? 'border-red-500 bg-red-50/50' : 'border-slate-300 focus:border-[#0B1A30]'
+                    }`}
                   />
+                  {phoneError && (
+                    <p className="text-[11px] font-semibold text-red-600 mt-1 flex items-center gap-1">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>{phoneError}</span>
+                    </p>
+                  )}
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#0B1A30] uppercase mb-1">Parent Email Address</label>
+                <label className="block text-xs font-bold text-[#0B1A30] uppercase mb-1">Parent Gmail Address (@gmail.com)</label>
                 <input
                   type="email"
-                  placeholder="parent@example.com"
+                  placeholder="e.g. parent@gmail.com"
                   value={formData.parentEmail}
-                  onChange={(e) => setFormData({ ...formData, parentEmail: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-300 text-xs bg-slate-50 text-slate-900 focus:outline-none focus:border-[#0B1A30]"
+                  onChange={(e) => {
+                    setFormData({ ...formData, parentEmail: e.target.value });
+                    if (emailError) setEmailError(null);
+                  }}
+                  className={`w-full px-4 py-3 rounded-xl border text-xs bg-slate-50 text-slate-900 focus:outline-none ${
+                    emailError ? 'border-red-500 bg-red-50/50' : 'border-slate-300 focus:border-[#0B1A30]'
+                  }`}
                 />
+                {emailError && (
+                  <p className="text-[11px] font-semibold text-red-600 mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>{emailError}</span>
+                  </p>
+                )}
               </div>
             </div>
 

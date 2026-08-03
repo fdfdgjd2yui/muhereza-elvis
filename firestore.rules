@@ -7,9 +7,11 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // Public read, write for admin/all in preview
+    // Strict single 'get' document read ONLY for student lookup by exact Index Number
+    // Completely reject 'list' operations (collection search queries) to protect candidate privacy
     match /students/{studentId} {
-      allow read: if true;
+      allow get: if true;
+      allow list: if false;
       allow write: if true;
     }
 

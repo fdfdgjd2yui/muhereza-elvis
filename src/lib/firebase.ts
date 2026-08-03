@@ -2,7 +2,7 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore, doc, getDoc, setDoc, deleteDoc, writeBatch, collection, getDocs, onSnapshot } from 'firebase/firestore';
 import firebaseConfigJson from '../../firebase-applet-config.json';
-import { StudentResult, GalleryItem, EventItem, NewsItem } from '../types';
+import { StudentResult, SubjectResult, GalleryItem, EventItem, NewsItem } from '../types';
 import { UPCOMING_EVENTS, INITIAL_GALLERY_ITEMS, NEWS_ARTICLES, INITIAL_STUDENT_RESULTS } from '../data/schoolData';
 
 const firebaseConfig = {
@@ -44,6 +44,35 @@ export function encodeDocId(id: string): string {
 
 export function decodeDocId(docId: string): string {
   return docId.replace(/__SLASH__/g, '/');
+}
+
+/**
+ * Recursively removes all `undefined` fields from an object and array values
+ * so Firestore accepts it without throwing unsupported field value errors.
+ */
+export function sanitizeForFirestore<T>(obj: T): T {
+  if (obj === undefined) {
+    return "" as unknown as T;
+  }
+  if (obj === null) {
+    return obj;
+  }
+  if (Array.isArray(obj)) {
+    return obj
+      .filter(item => item !== undefined)
+      .map(item => sanitizeForFirestore(item)) as unknown as T;
+  }
+  if (typeof obj === 'object' && !(obj instanceof Date)) {
+    const cleanObj: Record<string, any> = {};
+    for (const key of Object.keys(obj)) {
+      const val = (obj as Record<string, any>)[key];
+      if (val !== undefined) {
+        cleanObj[key] = sanitizeForFirestore(val);
+      }
+    }
+    return cleanObj as T;
+  }
+  return obj;
 }
 
 /**
@@ -206,10 +235,11 @@ export async function syncStudentsToFirestore(students: StudentResult[]): Promis
         const rawId = student.indexNumber.trim().toUpperCase();
         const docId = encodeDocId(rawId);
         const docRef = doc(db, 'students', docId);
-        batch.set(docRef, {
+        const payload = sanitizeForFirestore({
           ...student,
           updatedAt: new Date().toISOString()
-        }, { merge: true });
+        });
+        batch.set(docRef, payload, { merge: true });
       });
       await withTimeout(batch.commit(), 15000);
     }
@@ -274,83 +304,376 @@ export async function clearAllStudentsFromFirestore(indexNumbers: string[]): Pro
 }
 
 /**
- * Helper to parse Tab-Separated Values (TSV from Excel) or CSV string into StudentResult objects
- * Automatically checks the first row (headers) to find column matching 'index number', 'index', or 'student id'
+ * Official UNEB Subject Code Dictionary
+ */
+export const OFFICIAL_UNEB_SUBJECTS: Record<string, { code: string; name: string }> = {
+  // UCE Subjects
+  '112': { code: '112', name: 'English Language' },
+  '456': { code: '456', name: 'Mathematics' },
+  '535': { code: '535', name: 'Physics' },
+  '545': { code: '545', name: 'Chemistry' },
+  '553': { code: '553', name: 'Biology' },
+  '273': { code: '273', name: 'Geography' },
+  '241': { code: '241', name: 'History' },
+  '223': { code: '223', name: 'Christian Religious Education (CRE)' },
+  '225': { code: '225', name: 'Islamic Religious Education (IRE)' },
+  '840': { code: '840', name: 'ICT / Computer Studies' },
+  '527': { code: '527', name: 'Agriculture' },
+  '208': { code: '208', name: 'Literature in English' },
+  '610': { code: '610', name: 'Art & Design' },
+  '335': { code: '335', name: 'Luganda' },
+  '301': { code: '301', name: 'French' },
+  '315': { code: '315', name: 'German' },
+  '325': { code: '325', name: 'Arabic' },
+  '336': { code: '336', name: 'Kiswahili' },
+  '800': { code: '800', name: 'Commerce' },
+  '810': { code: '810', name: 'Principles of Accounts' },
+  '843': { code: '843', name: 'Sub-ICT' },
+  // UACE Subjects
+  'P510': { code: 'P510', name: 'Physics' },
+  'P525': { code: 'P525', name: 'Chemistry' },
+  'P530': { code: 'P530', name: 'Biology' },
+  'P425': { code: 'P425', name: 'Pure Mathematics' },
+  'P210': { code: 'P210', name: 'History' },
+  'P220': { code: 'P220', name: 'Economics' },
+  'P230': { code: 'P230', name: 'Entrepreneurship Education' },
+  'P240': { code: 'P240', name: 'Christian Religious Education' },
+  'P250': { code: 'P250', name: 'Geography' },
+  'P310': { code: 'P310', name: 'Literature in English' },
+  'P615': { code: 'P615', name: 'Art & Design' },
+  'P620': { code: 'P620', name: 'Music' },
+  'S101': { code: 'S101', name: 'General Paper' },
+  'S475': { code: 'S475', name: 'Sub-Mathematics' },
+};
+
+/**
+ * Resolve UNEB Code & Official Name from column header or user text
+ */
+export function resolveUnebSubject(header: string): { code: string; name: string } {
+  const clean = header.trim();
+  const upper = clean.toUpperCase();
+
+  if (OFFICIAL_UNEB_SUBJECTS[upper]) {
+    return OFFICIAL_UNEB_SUBJECTS[upper];
+  }
+
+  const matchCode = clean.match(/^([P|S]?\d{3,4})\b/i);
+  if (matchCode) {
+    const codeKey = matchCode[1].toUpperCase();
+    if (OFFICIAL_UNEB_SUBJECTS[codeKey]) {
+      return OFFICIAL_UNEB_SUBJECTS[codeKey];
+    }
+  }
+
+  for (const item of Object.values(OFFICIAL_UNEB_SUBJECTS)) {
+    if (item.name.toLowerCase() === clean.toLowerCase() ||
+        clean.toLowerCase().includes(item.name.toLowerCase()) ||
+        item.name.toLowerCase().includes(clean.toLowerCase())) {
+      return item;
+    }
+  }
+
+  const low = clean.toLowerCase();
+  if (low.includes('math')) return OFFICIAL_UNEB_SUBJECTS['456'];
+  if (low.includes('eng')) return OFFICIAL_UNEB_SUBJECTS['112'];
+  if (low.includes('phy')) return OFFICIAL_UNEB_SUBJECTS['535'];
+  if (low.includes('chem')) return OFFICIAL_UNEB_SUBJECTS['545'];
+  if (low.includes('bio')) return OFFICIAL_UNEB_SUBJECTS['553'];
+  if (low.includes('ict') || low.includes('computer')) return OFFICIAL_UNEB_SUBJECTS['840'];
+  if (low.includes('geo')) return OFFICIAL_UNEB_SUBJECTS['273'];
+  if (low.includes('hist')) return OFFICIAL_UNEB_SUBJECTS['241'];
+  if (low.includes('cre')) return OFFICIAL_UNEB_SUBJECTS['223'];
+  if (low.includes('ire')) return OFFICIAL_UNEB_SUBJECTS['225'];
+  if (low.includes('agric')) return OFFICIAL_UNEB_SUBJECTS['527'];
+  if (low.includes('lit')) return OFFICIAL_UNEB_SUBJECTS['208'];
+  if (low.includes('art')) return OFFICIAL_UNEB_SUBJECTS['610'];
+
+  return {
+    code: upper.substring(0, 6) || 'SUB',
+    name: clean.toUpperCase()
+  };
+}
+
+/**
+ * Calculate UNEB Grade from raw mark (0-100) OR preserve provided grade string
+ */
+export function calculateUnebGrade(rawInput: string | number): { grade: string; remark: string; score?: number } {
+  const strVal = String(rawInput ?? '').trim();
+  if (!strVal) return { grade: 'F9', remark: 'Fail 9' };
+
+  const numVal = parseFloat(strVal);
+  if (!isNaN(numVal) && /^[\d.]+%?$/.test(strVal)) {
+    const score = Math.min(100, Math.max(0, Math.round(numVal)));
+    if (score >= 80) return { score, grade: 'D1', remark: 'Distinction 1' };
+    if (score >= 75) return { score, grade: 'D2', remark: 'Distinction 2' };
+    if (score >= 70) return { score, grade: 'C3', remark: 'Credit 3' };
+    if (score >= 65) return { score, grade: 'C4', remark: 'Credit 4' };
+    if (score >= 60) return { score, grade: 'C5', remark: 'Credit 5' };
+    if (score >= 55) return { score, grade: 'C6', remark: 'Credit 6' };
+    if (score >= 45) return { score, grade: 'P7', remark: 'Pass 7' };
+    if (score >= 35) return { score, grade: 'P8', remark: 'Pass 8' };
+    return { score, grade: 'F9', remark: 'Fail 9' };
+  }
+
+  const upper = strVal.toUpperCase();
+  if (upper === 'D1' || upper.includes('DISTINCTION 1')) return { grade: 'D1', remark: 'Distinction 1' };
+  if (upper === 'D2' || upper.includes('DISTINCTION 2')) return { grade: 'D2', remark: 'Distinction 2' };
+  if (upper === 'C3' || upper.includes('CREDIT 3')) return { grade: 'C3', remark: 'Credit 3' };
+  if (upper === 'C4' || upper.includes('CREDIT 4')) return { grade: 'C4', remark: 'Credit 4' };
+  if (upper === 'C5' || upper.includes('CREDIT 5')) return { grade: 'C5', remark: 'Credit 5' };
+  if (upper === 'C6' || upper.includes('CREDIT 6')) return { grade: 'C6', remark: 'Credit 6' };
+  if (upper === 'P7' || upper.includes('PASS 7')) return { grade: 'P7', remark: 'Pass 7' };
+  if (upper === 'P8' || upper.includes('PASS 8')) return { grade: 'P8', remark: 'Pass 8' };
+  if (upper === 'F9' || upper.includes('FAIL 9')) return { grade: 'F9', remark: 'Fail 9' };
+
+  if (upper === 'A') return { grade: 'A', remark: 'Principal A (6 Points)' };
+  if (upper === 'B') return { grade: 'B', remark: 'Principal B (5 Points)' };
+  if (upper === 'C') return { grade: 'C', remark: 'Principal C (4 Points)' };
+  if (upper === 'D') return { grade: 'D', remark: 'Principal D (3 Points)' };
+  if (upper === 'E') return { grade: 'E', remark: 'Principal E (2 Points)' };
+  if (upper === 'O') return { grade: 'O', remark: 'Subsidiary Pass (1 Point)' };
+  if (upper === 'F') return { grade: 'F', remark: 'Fail (0 Points)' };
+
+  return { grade: upper, remark: strVal };
+}
+
+/**
+ * Calculate UNEB Aggregates & Division
+ */
+export function calculateUnebAggregatesAndDivision(subjects: SubjectResult[]): {
+  aggregates: number;
+  division: string;
+  aggregatesOrPoints: string;
+  divisionOrClass: string;
+} {
+  const gradePointsMap: Record<string, number> = {
+    'D1': 1, 'D2': 2, 'C3': 3, 'C4': 4, 'C5': 5, 'C6': 6, 'P7': 7, 'P8': 8, 'F9': 9
+  };
+
+  const points = subjects
+    .map(s => gradePointsMap[s.grade.toUpperCase()] || 0)
+    .filter(p => p > 0)
+    .sort((a, b) => a - b);
+
+  if (points.length === 0) {
+    return {
+      aggregates: 0,
+      division: 'Division 4',
+      aggregatesOrPoints: 'N/A',
+      divisionOrClass: 'Division 4'
+    };
+  }
+
+  const best8 = points.slice(0, 8);
+  const totalAggregates = best8.reduce((a, b) => a + b, 0);
+
+  let div = 'Division 4';
+  if (totalAggregates <= 32 && points.length >= 7) div = 'Division 1';
+  else if (totalAggregates <= 45 && points.length >= 6) div = 'Division 2';
+  else if (totalAggregates <= 58) div = 'Division 3';
+  else if (totalAggregates <= 68) div = 'Division 4';
+  else div = 'Division U';
+
+  return {
+    aggregates: totalAggregates,
+    division: div,
+    aggregatesOrPoints: `${totalAggregates} Aggregates`,
+    divisionOrClass: div
+  };
+}
+
+/**
+ * Parse JSON or Tab/CSV Spreadsheet Data into StudentResult objects.
+ * Guarantees that EACH student gets ONLY the subjects explicitly provided for them in the upload!
  */
 export function parseSpreadsheetData(rawText: string): StudentResult[] {
-  const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+  const trimmed = rawText.trim();
+  if (!trimmed) return [];
+
+  // 1. JSON Array format support
+  if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      const arr = Array.isArray(parsed) ? parsed : [parsed];
+      return arr.map(item => {
+        const rawSubs = Array.isArray(item.subjects) ? item.subjects : [];
+        const cleanSubjects: SubjectResult[] = rawSubs.map((s: any) => {
+          const info = resolveUnebSubject(s.code || s.name || '');
+          const evalGrade = calculateUnebGrade(s.score !== undefined ? s.score : s.grade);
+          return {
+            code: s.code || info.code,
+            name: s.name || info.name,
+            score: s.score !== undefined ? Number(s.score) : evalGrade.score,
+            grade: s.grade || evalGrade.grade,
+            remark: s.remark || evalGrade.remark || s.scoreName,
+            scoreName: s.scoreName || s.remark || evalGrade.remark
+          };
+        });
+
+        const calc = calculateUnebAggregatesAndDivision(cleanSubjects);
+        const aggregates = item.aggregates !== undefined ? Number(item.aggregates) : calc.aggregates;
+        const division = item.division || calc.division;
+
+        return {
+          indexNumber: String(item.indexNumber || '').toUpperCase().trim(),
+          studentName: String(item.studentName || item.name || '').toUpperCase().trim(),
+          level: item.level === 'UACE' ? 'UACE' : 'UCE',
+          examYear: Number(item.examYear || 2025),
+          gender: item.gender === 'F' ? 'F' : 'M',
+          aggregates,
+          division,
+          combinationOrStream: item.combinationOrStream || 'Senior 4',
+          aggregatesOrPoints: item.aggregatesOrPoints || `${aggregates} Aggregates`,
+          divisionOrClass: item.divisionOrClass || division,
+          headteacherRemark: item.headteacherRemark || 'Satisfactory candidate performance.',
+          verifiedStatus: true,
+          subjects: cleanSubjects
+        };
+      });
+    } catch (e) {
+      // Continue to CSV/TSV parsing
+    }
+  }
+
+  // 2. CSV / TSV Parsing
+  const lines = trimmed.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
   if (lines.length === 0) return [];
 
   const firstLine = lines[0];
   const isTab = firstLine.includes('\t');
   const delimiter = isTab ? '\t' : ',';
 
-  const rows = lines.map(line => line.split(delimiter).map(c => c.replace(/^"|"$/g, '').trim()));
-  if (rows.length === 0) return [];
+  const rawRows = lines.map(line => line.split(delimiter).map(c => c.replace(/^"|"$/g, '').trim()));
+  if (rawRows.length === 0) return [];
 
-  const headers = rows[0].map(h => h.toLowerCase());
-  let indexColIdx = headers.findIndex(h => 
+  const rawHeaders = rawRows[0];
+  const lowerHeaders = rawHeaders.map(h => h.toLowerCase());
+
+  let indexColIdx = lowerHeaders.findIndex(h => 
     h === 'index number' || h === 'indexnumber' || h === 'index' || h === 'student id' || h === 'studentid' || h.includes('index')
   );
+  let nameColIdx = lowerHeaders.findIndex(h => h.includes('name') || h.includes('student'));
+  let levelColIdx = lowerHeaders.findIndex(h => h.includes('level'));
+  let yearColIdx = lowerHeaders.findIndex(h => h.includes('year'));
+  let genderColIdx = lowerHeaders.findIndex(h => h.includes('gender') || h.includes('sex'));
+  let streamColIdx = lowerHeaders.findIndex(h => h.includes('stream') || h.includes('combination'));
+  let aggregatesColIdx = lowerHeaders.findIndex(h => h.includes('aggregate') || h.includes('point'));
+  let divisionColIdx = lowerHeaders.findIndex(h => h.includes('division') || h.includes('class'));
+  let remarkColIdx = lowerHeaders.findIndex(h => h.includes('remark') || h.includes('comment'));
 
-  let nameColIdx = headers.findIndex(h => h.includes('name') || h.includes('student'));
-  let levelColIdx = headers.findIndex(h => h.includes('level'));
-  let yearColIdx = headers.findIndex(h => h.includes('year'));
-  let genderColIdx = headers.findIndex(h => h.includes('gender') || h.includes('sex'));
-  let streamColIdx = headers.findIndex(h => h.includes('stream') || h.includes('combination'));
-  let aggregatesColIdx = headers.findIndex(h => h.includes('aggregate') || h.includes('point'));
-  let divisionColIdx = headers.findIndex(h => h.includes('division') || h.includes('class'));
-  let remarkColIdx = headers.findIndex(h => h.includes('remark') || h.includes('comment'));
+  const isMetadataCol = (idx: number) => {
+    return idx === indexColIdx || idx === nameColIdx || idx === levelColIdx ||
+           idx === yearColIdx || idx === genderColIdx || idx === streamColIdx ||
+           idx === aggregatesColIdx || idx === divisionColIdx || idx === remarkColIdx;
+  };
 
-  const hasHeaderRow = indexColIdx !== -1 || nameColIdx !== -1 || headers.some(h => ['level', 'year', 'aggregates', 'division'].includes(h));
+  const hasHeaderRow = indexColIdx !== -1 || nameColIdx !== -1 || lowerHeaders.some(h => ['level', 'year', 'aggregates', 'division'].includes(h));
   const startRowIdx = hasHeaderRow ? 1 : 0;
 
   if (indexColIdx === -1) indexColIdx = 0;
   if (nameColIdx === -1) nameColIdx = 1;
 
-  const results: StudentResult[] = [];
-
-  for (let i = startRowIdx; i < rows.length; i++) {
-    const cols = rows[i];
-    if (!cols || cols.length === 0 || !cols[indexColIdx]) continue;
-
-    const rawIndex = cols[indexColIdx];
-    if (!rawIndex || rawIndex.length < 2) continue;
-
-    const indexNumber = rawIndex.toUpperCase();
-    const studentName = (cols[nameColIdx] || `STUDENT ${i}`).toUpperCase();
-    const levelVal = levelColIdx !== -1 && cols[levelColIdx] ? cols[levelColIdx].toUpperCase() : '';
-    const level: 'UCE' | 'UACE' = levelVal.includes('UACE') || indexNumber.includes('A/') ? 'UACE' : 'UCE';
-    const examYear = yearColIdx !== -1 && cols[yearColIdx] ? (parseInt(cols[yearColIdx]) || 2025) : 2025;
-    const gender: 'M' | 'F' = genderColIdx !== -1 && cols[genderColIdx] && cols[genderColIdx].toUpperCase() === 'F' ? 'F' : 'M';
-    const combinationOrStream = streamColIdx !== -1 && cols[streamColIdx] ? cols[streamColIdx] : (level === 'UCE' ? 'Senior 4 Science Stream A' : 'PCM/ICT');
-    const aggregatesOrPoints = aggregatesColIdx !== -1 && cols[aggregatesColIdx] ? cols[aggregatesColIdx] : (level === 'UCE' ? '10 Aggregates' : '18 Points');
-    const divisionOrClass = divisionColIdx !== -1 && cols[divisionColIdx] ? cols[divisionColIdx] : 'Division 1';
-    const headteacherRemark = remarkColIdx !== -1 && cols[remarkColIdx] ? cols[remarkColIdx] : 'Outstanding candidate performance recorded.';
-
-    results.push({
-      indexNumber,
-      studentName,
-      level,
-      examYear,
-      gender,
-      combinationOrStream,
-      aggregatesOrPoints,
-      divisionOrClass,
-      headteacherRemark,
-      verifiedStatus: true,
-      subjects: [
-        { code: '535', name: 'PHYSICS', grade: 'D1', scoreName: 'Distinction 1' },
-        { code: '545', name: 'CHEMISTRY', grade: 'D1', scoreName: 'Distinction 1' },
-        { code: '553', name: 'BIOLOGY', grade: 'D1', scoreName: 'Distinction 1' },
-        { code: '456', name: 'MATHEMATICS', grade: 'D1', scoreName: 'Distinction 1' },
-        { code: '112', name: 'ENGLISH LANGUAGE', grade: 'D2', scoreName: 'Distinction 2' },
-        { code: '840', name: 'ICT & COMPUTER STUDIES', grade: 'D1', scoreName: 'Distinction 1' }
-      ]
+  // Identify Subject Columns in wide format
+  const subjectColIndices: { colIdx: number; code: string; name: string }[] = [];
+  if (hasHeaderRow) {
+    rawHeaders.forEach((h, idx) => {
+      if (!isMetadataCol(idx) && h.trim().length > 0) {
+        const info = resolveUnebSubject(h);
+        subjectColIndices.push({ colIdx: idx, code: info.code, name: info.name });
+      }
     });
   }
 
-  return results;
+  const studentMap = new Map<string, StudentResult>();
+
+  for (let i = startRowIdx; i < rawRows.length; i++) {
+    const cols = rawRows[i];
+    if (!cols || cols.length === 0 || !cols[indexColIdx]) continue;
+
+    const rawIndex = cols[indexColIdx].trim();
+    if (!rawIndex || rawIndex.length < 2) continue;
+
+    const indexNumber = rawIndex.toUpperCase();
+    const studentName = (cols[nameColIdx] || `STUDENT ${i}`).trim().toUpperCase();
+    const levelVal = levelColIdx !== -1 && cols[levelColIdx] ? cols[levelColIdx].toUpperCase() : '';
+    const level: 'UCE' | 'UACE' = levelVal.includes('UACE') || indexNumber.includes('A/') ? 'UACE' : 'UCE';
+    const examYear = yearColIdx !== -1 && cols[yearColIdx] ? (parseInt(cols[yearColIdx]) || 2025) : 2025;
+    const gender: 'M' | 'F' = genderColIdx !== -1 && cols[genderColIdx] && cols[genderColIdx].toUpperCase().startsWith('F') ? 'F' : 'M';
+    const combinationOrStream = streamColIdx !== -1 && cols[streamColIdx] ? cols[streamColIdx] : (level === 'UCE' ? 'Senior 4' : 'PCM/ICT');
+    const headteacherRemark = remarkColIdx !== -1 && cols[remarkColIdx] ? cols[remarkColIdx] : 'Satisfactory candidate performance.';
+
+    // Initialize or retrieve student record
+    let student = studentMap.get(indexNumber);
+    if (!student) {
+      student = {
+        indexNumber,
+        studentName,
+        level,
+        examYear,
+        gender,
+        combinationOrStream,
+        headteacherRemark,
+        verifiedStatus: true,
+        subjects: []
+      };
+      studentMap.set(indexNumber, student);
+    }
+
+    // Extract subjects from wide format columns - exact literal representation
+    subjectColIndices.forEach(({ colIdx, code, name }) => {
+      const cellVal = cols[colIdx] ? cols[colIdx].trim() : '';
+      if (cellVal && cellVal !== '-' && cellVal.toUpperCase() !== 'N/A' && cellVal.toUpperCase() !== 'ABS') {
+        if (!student!.subjects.some(s => s.code === code || s.name === name)) {
+          const numScore = !isNaN(Number(cellVal)) ? Number(cellVal) : undefined;
+          const evalGrade = calculateUnebGrade(cellVal);
+          
+          student!.subjects.push({
+            code,
+            name,
+            score: numScore !== undefined ? numScore : evalGrade.score,
+            grade: numScore === undefined ? cellVal : evalGrade.grade,
+            remark: cellVal,
+            scoreName: cellVal
+          });
+        }
+      }
+    });
+
+    if (aggregatesColIdx !== -1 && cols[aggregatesColIdx]) {
+      const aggText = cols[aggregatesColIdx].trim();
+      const numAgg = parseInt(aggText);
+      if (!isNaN(numAgg)) student.aggregates = numAgg;
+      student.aggregatesOrPoints = aggText;
+    }
+    if (divisionColIdx !== -1 && cols[divisionColIdx]) {
+      const divText = cols[divisionColIdx].trim();
+      student.division = divText;
+      student.divisionOrClass = divText;
+    }
+  }
+
+  // Finalize student objects - preserve explicit literal values from raw upload
+  const finalResults: StudentResult[] = [];
+  studentMap.forEach((student) => {
+    // Only set default aggregates/division strings if student subjects are present and not explicitly set
+    if (student.aggregates === undefined && student.subjects.length > 0) {
+      const calc = calculateUnebAggregatesAndDivision(student.subjects);
+      student.aggregates = calc.aggregates;
+      if (!student.aggregatesOrPoints) {
+        student.aggregatesOrPoints = `${calc.aggregates} Aggregates`;
+      }
+    }
+    if (!student.division && student.subjects.length > 0) {
+      const calc = calculateUnebAggregatesAndDivision(student.subjects);
+      student.division = calc.division;
+      if (!student.divisionOrClass) {
+        student.divisionOrClass = calc.division;
+      }
+    }
+    finalResults.push(student);
+  });
+
+  return finalResults;
 }
 
 /**
@@ -549,7 +872,7 @@ export async function addGalleryItemToFirestore(item: GalleryItem): Promise<bool
   if (isFirebaseConfigured) {
     try {
       const docRef = doc(db, 'gallery', item.id);
-      await withTimeout(setDoc(docRef, { ...item, createdAt: new Date().toISOString() }, { merge: true }));
+      await withTimeout(setDoc(docRef, sanitizeForFirestore({ ...item, createdAt: new Date().toISOString() }), { merge: true }));
     } catch (err) {
       console.warn("Firestore gallery upload notice:", err);
     }
