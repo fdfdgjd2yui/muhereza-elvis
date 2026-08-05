@@ -484,9 +484,9 @@ export function calculateUnebAggregatesAndDivision(subjects: SubjectResult[]): {
 
 /**
  * Parse JSON or Tab/CSV Spreadsheet Data into StudentResult objects.
- * Guarantees that EACH student gets ONLY the subjects explicitly provided for them in the upload!
+ * Operates purely as a literal data viewer for the admin's uploaded spreadsheet rows and keys.
  */
-export function parseSpreadsheetData(rawText: string): StudentResult[] {
+export function parseSpreadsheetData(rawText: string): any[] {
   const trimmed = rawText.trim();
   if (!trimmed) return [];
 
@@ -495,47 +495,20 @@ export function parseSpreadsheetData(rawText: string): StudentResult[] {
     try {
       const parsed = JSON.parse(trimmed);
       const arr = Array.isArray(parsed) ? parsed : [parsed];
-      return arr.map(item => {
-        const rawSubs = Array.isArray(item.subjects) ? item.subjects : [];
-        const cleanSubjects: SubjectResult[] = rawSubs.map((s: any) => {
-          const info = resolveUnebSubject(s.code || s.name || '');
-          const evalGrade = calculateUnebGrade(s.score !== undefined ? s.score : s.grade);
-          return {
-            code: s.code || info.code,
-            name: s.name || info.name,
-            score: s.score !== undefined ? Number(s.score) : evalGrade.score,
-            grade: s.grade || evalGrade.grade,
-            remark: s.remark || evalGrade.remark || s.scoreName,
-            scoreName: s.scoreName || s.remark || evalGrade.remark
-          };
-        });
-
-        const calc = calculateUnebAggregatesAndDivision(cleanSubjects);
-        const aggregates = item.aggregates !== undefined ? Number(item.aggregates) : calc.aggregates;
-        const division = item.division || calc.division;
-
-        return {
-          indexNumber: String(item.indexNumber || '').toUpperCase().trim(),
-          studentName: String(item.studentName || item.name || '').toUpperCase().trim(),
-          level: item.level === 'UACE' ? 'UACE' : 'UCE',
-          examYear: Number(item.examYear || 2025),
-          gender: item.gender === 'F' ? 'F' : 'M',
-          aggregates,
-          division,
-          combinationOrStream: item.combinationOrStream || 'Senior 4',
-          aggregatesOrPoints: item.aggregatesOrPoints || `${aggregates} Aggregates`,
-          divisionOrClass: item.divisionOrClass || division,
-          headteacherRemark: item.headteacherRemark || 'Satisfactory candidate performance.',
-          verifiedStatus: true,
-          subjects: cleanSubjects
-        };
+      return arr.map((item) => {
+        const cleanObj = { ...item };
+        const indexVal = item['Index Number'] || item['Index'] || item.indexNumber || item.id || '';
+        if (indexVal && !cleanObj.indexNumber) cleanObj.indexNumber = String(indexVal).toUpperCase().trim();
+        const nameVal = item['Name'] || item['Student Name'] || item.studentName || item.name || '';
+        if (nameVal && !cleanObj.studentName) cleanObj.studentName = String(nameVal).toUpperCase().trim();
+        return cleanObj;
       });
     } catch (e) {
       // Continue to CSV/TSV parsing
     }
   }
 
-  // 2. CSV / TSV Parsing
+  // 2. CSV / TSV Parsing - Pure literal parser preserving raw headers and cell values
   const lines = trimmed.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
   if (lines.length === 0) return [];
 
@@ -547,133 +520,43 @@ export function parseSpreadsheetData(rawText: string): StudentResult[] {
   if (rawRows.length === 0) return [];
 
   const rawHeaders = rawRows[0];
-  const lowerHeaders = rawHeaders.map(h => h.toLowerCase());
+  const dataRows = rawRows.slice(1);
 
-  let indexColIdx = lowerHeaders.findIndex(h => 
-    h === 'index number' || h === 'indexnumber' || h === 'index' || h === 'student id' || h === 'studentid' || h.includes('index')
-  );
-  let nameColIdx = lowerHeaders.findIndex(h => h.includes('name') || h.includes('student'));
-  let levelColIdx = lowerHeaders.findIndex(h => h.includes('level'));
-  let yearColIdx = lowerHeaders.findIndex(h => h.includes('year'));
-  let genderColIdx = lowerHeaders.findIndex(h => h.includes('gender') || h.includes('sex'));
-  let streamColIdx = lowerHeaders.findIndex(h => h.includes('stream') || h.includes('combination'));
-  let aggregatesColIdx = lowerHeaders.findIndex(h => h.includes('aggregate') || h.includes('point'));
-  let divisionColIdx = lowerHeaders.findIndex(h => h.includes('division') || h.includes('class'));
-  let remarkColIdx = lowerHeaders.findIndex(h => h.includes('remark') || h.includes('comment'));
+  const results: any[] = [];
+  for (let i = 0; i < dataRows.length; i++) {
+    const cols = dataRows[i];
+    if (!cols || cols.length === 0 || cols.every(c => !c)) continue;
 
-  const isMetadataCol = (idx: number) => {
-    return idx === indexColIdx || idx === nameColIdx || idx === levelColIdx ||
-           idx === yearColIdx || idx === genderColIdx || idx === streamColIdx ||
-           idx === aggregatesColIdx || idx === divisionColIdx || idx === remarkColIdx;
-  };
-
-  const hasHeaderRow = indexColIdx !== -1 || nameColIdx !== -1 || lowerHeaders.some(h => ['level', 'year', 'aggregates', 'division'].includes(h));
-  const startRowIdx = hasHeaderRow ? 1 : 0;
-
-  if (indexColIdx === -1) indexColIdx = 0;
-  if (nameColIdx === -1) nameColIdx = 1;
-
-  // Identify Subject Columns in wide format
-  const subjectColIndices: { colIdx: number; code: string; name: string }[] = [];
-  if (hasHeaderRow) {
-    rawHeaders.forEach((h, idx) => {
-      if (!isMetadataCol(idx) && h.trim().length > 0) {
-        const info = resolveUnebSubject(h);
-        subjectColIndices.push({ colIdx: idx, code: info.code, name: info.name });
-      }
-    });
-  }
-
-  const studentMap = new Map<string, StudentResult>();
-
-  for (let i = startRowIdx; i < rawRows.length; i++) {
-    const cols = rawRows[i];
-    if (!cols || cols.length === 0 || !cols[indexColIdx]) continue;
-
-    const rawIndex = cols[indexColIdx].trim();
-    if (!rawIndex || rawIndex.length < 2) continue;
-
-    const indexNumber = rawIndex.toUpperCase();
-    const studentName = (cols[nameColIdx] || `STUDENT ${i}`).trim().toUpperCase();
-    const levelVal = levelColIdx !== -1 && cols[levelColIdx] ? cols[levelColIdx].toUpperCase() : '';
-    const level: 'UCE' | 'UACE' = levelVal.includes('UACE') || indexNumber.includes('A/') ? 'UACE' : 'UCE';
-    const examYear = yearColIdx !== -1 && cols[yearColIdx] ? (parseInt(cols[yearColIdx]) || 2025) : 2025;
-    const gender: 'M' | 'F' = genderColIdx !== -1 && cols[genderColIdx] && cols[genderColIdx].toUpperCase().startsWith('F') ? 'F' : 'M';
-    const combinationOrStream = streamColIdx !== -1 && cols[streamColIdx] ? cols[streamColIdx] : (level === 'UCE' ? 'Senior 4' : 'PCM/ICT');
-    const headteacherRemark = remarkColIdx !== -1 && cols[remarkColIdx] ? cols[remarkColIdx] : 'Satisfactory candidate performance.';
-
-    // Initialize or retrieve student record
-    let student = studentMap.get(indexNumber);
-    if (!student) {
-      student = {
-        indexNumber,
-        studentName,
-        level,
-        examYear,
-        gender,
-        combinationOrStream,
-        headteacherRemark,
-        verifiedStatus: true,
-        subjects: []
-      };
-      studentMap.set(indexNumber, student);
-    }
-
-    // Extract subjects from wide format columns - exact literal representation
-    subjectColIndices.forEach(({ colIdx, code, name }) => {
-      const cellVal = cols[colIdx] ? cols[colIdx].trim() : '';
-      if (cellVal && cellVal !== '-' && cellVal.toUpperCase() !== 'N/A' && cellVal.toUpperCase() !== 'ABS') {
-        if (!student!.subjects.some(s => s.code === code || s.name === name)) {
-          const numScore = !isNaN(Number(cellVal)) ? Number(cellVal) : undefined;
-          const evalGrade = calculateUnebGrade(cellVal);
-          
-          student!.subjects.push({
-            code,
-            name,
-            score: numScore !== undefined ? numScore : evalGrade.score,
-            grade: numScore === undefined ? cellVal : evalGrade.grade,
-            remark: cellVal,
-            scoreName: cellVal
-          });
-        }
+    const rowObj: Record<string, any> = {};
+    rawHeaders.forEach((header, idx) => {
+      const hTrim = header.trim();
+      if (hTrim) {
+        rowObj[hTrim] = cols[idx] !== undefined ? cols[idx] : '';
       }
     });
 
-    if (aggregatesColIdx !== -1 && cols[aggregatesColIdx]) {
-      const aggText = cols[aggregatesColIdx].trim();
-      const numAgg = parseInt(aggText);
-      if (!isNaN(numAgg)) student.aggregates = numAgg;
-      student.aggregatesOrPoints = aggText;
-    }
-    if (divisionColIdx !== -1 && cols[divisionColIdx]) {
-      const divText = cols[divisionColIdx].trim();
-      student.division = divText;
-      student.divisionOrClass = divText;
-    }
+    // Extract index number and name for helper lookup properties
+    const indexKey = Object.keys(rowObj).find(k => {
+      const lk = k.toLowerCase();
+      return lk.includes('index') || lk.includes('id') || lk.includes('number');
+    });
+    const rawIndex = indexKey ? rowObj[indexKey] : (cols[0] || '');
+    if (!rawIndex || String(rawIndex).trim().length === 0) continue;
+
+    const cleanIndex = String(rawIndex).toUpperCase().trim();
+    rowObj.indexNumber = cleanIndex;
+
+    const nameKey = Object.keys(rowObj).find(k => {
+      const lk = k.toLowerCase();
+      return lk.includes('name') || lk.includes('student');
+    });
+    const rawName = nameKey ? rowObj[nameKey] : (cols[1] || '');
+    rowObj.studentName = String(rawName).trim();
+
+    results.push(rowObj);
   }
 
-  // Finalize student objects - preserve explicit literal values from raw upload
-  const finalResults: StudentResult[] = [];
-  studentMap.forEach((student) => {
-    // Only set default aggregates/division strings if student subjects are present and not explicitly set
-    if (student.aggregates === undefined && student.subjects.length > 0) {
-      const calc = calculateUnebAggregatesAndDivision(student.subjects);
-      student.aggregates = calc.aggregates;
-      if (!student.aggregatesOrPoints) {
-        student.aggregatesOrPoints = `${calc.aggregates} Aggregates`;
-      }
-    }
-    if (!student.division && student.subjects.length > 0) {
-      const calc = calculateUnebAggregatesAndDivision(student.subjects);
-      student.division = calc.division;
-      if (!student.divisionOrClass) {
-        student.divisionOrClass = calc.division;
-      }
-    }
-    finalResults.push(student);
-  });
-
-  return finalResults;
+  return results;
 }
 
 /**

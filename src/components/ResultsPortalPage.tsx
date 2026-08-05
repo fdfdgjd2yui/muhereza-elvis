@@ -43,8 +43,11 @@ export const ResultsPortalPage: React.FC<ResultsPortalPageProps> = ({
 
       // 1. Check in local admin array first
       const matchedLocal = allResults.find(
-        (s) => s.indexNumber.trim().toUpperCase() === cleanIndex ||
-               s.indexNumber.replace(/[\s/]/g, '').toUpperCase() === normalizedIndex
+        (s: any) => {
+          const sIdx = String(s['Index Number'] || s['Index'] || s.indexNumber || s.id || '').trim().toUpperCase();
+          const sNorm = sIdx.replace(/[\s/]/g, '');
+          return sIdx === cleanIndex || sNorm === normalizedIndex;
+        }
       );
 
       if (matchedLocal) {
@@ -66,6 +69,75 @@ export const ResultsPortalPage: React.FC<ResultsPortalPageProps> = ({
     } finally {
       setIsSearching(false);
     }
+  };
+
+  const getCandidateMeta = (result: any) => {
+    if (!result) return [];
+
+    const metaList: { label: string; value: string }[] = [];
+
+    // Always extract Student Name if present
+    const nameVal = result['Name'] || result['Student Name'] || result.studentName || result['name'];
+    if (nameVal) metaList.push({ label: 'Student Name', value: String(nameVal) });
+
+    // Always extract Index Number if present
+    const indexVal = result['Index Number'] || result['Index'] || result.indexNumber || result['id'];
+    if (indexVal) metaList.push({ label: 'Index Number', value: String(indexVal) });
+
+    // Extract any other metadata fields (e.g., Gender, Age)
+    const EXCLUDED_KEYS = new Set([
+      'indexNumber', 'studentName', 'index', 'name', 'id',
+      'Index Number', 'Student Name', 'Name', 'Index', 'ID',
+      'updatedAt', 'createdAt', 'subjects', 'verifiedStatus',
+      'level', 'examYear', 'combinationOrStream', 'headteacherRemark',
+      'aggregates', 'division', 'aggregatesOrPoints', 'divisionOrClass'
+    ]);
+
+    Object.keys(result).forEach((key) => {
+      if (EXCLUDED_KEYS.has(key)) return;
+      const lk = key.toLowerCase();
+      if (lk.includes('gender') || lk.includes('sex') || lk.includes('age') || lk.includes('class') || lk.includes('stream')) {
+        metaList.push({ label: key, value: String(result[key]) });
+      }
+    });
+
+    return metaList;
+  };
+
+  const getCandidateSubjects = (result: any): { subject: string; score: string }[] => {
+    if (!result) return [];
+
+    // 1. Array format
+    if (Array.isArray(result.subjects) && result.subjects.length > 0) {
+      return result.subjects.map((s: any) => ({
+        subject: s.name || s.subject || s.code || 'Subject',
+        score: s.score !== undefined ? String(s.score) : String(s.grade || s.scoreName || s.remark || '-')
+      }));
+    }
+
+    // 2. Direct key-value format (e.g. Math: 54, English: 72)
+    const EXCLUDED_KEYS = new Set([
+      'indexNumber', 'studentName', 'index', 'name', 'id',
+      'Index Number', 'Student Name', 'Name', 'Index', 'ID',
+      'Gender', 'gender', 'Sex', 'sex', 'Age', 'age',
+      'updatedAt', 'createdAt', 'subjects', 'verifiedStatus',
+      'level', 'examYear', 'combinationOrStream', 'headteacherRemark',
+      'aggregates', 'division', 'aggregatesOrPoints', 'divisionOrClass'
+    ]);
+
+    const subjectList: { subject: string; score: string }[] = [];
+    Object.keys(result).forEach((key) => {
+      if (EXCLUDED_KEYS.has(key)) return;
+      const val = result[key];
+      if (val !== undefined && val !== null && val !== '') {
+        subjectList.push({
+          subject: key,
+          score: String(val)
+        });
+      }
+    });
+
+    return subjectList;
   };
 
   return (
@@ -126,60 +198,40 @@ export const ResultsPortalPage: React.FC<ResultsPortalPageProps> = ({
         <div className="mt-8 border border-slate-300 rounded p-6 space-y-4">
           <div className="flex justify-between items-start border-b border-slate-300 pb-3">
             <div>
-              <h3 className="text-lg font-bold text-[#0B1A30]">Nexus Academy - UNEB Result Slip</h3>
+              <h3 className="text-lg font-bold text-[#0B1A30]">Nexus Academy - Candidate Result Slip</h3>
               <p className="text-xs text-slate-600">Official Candidate Score Breakdown</p>
             </div>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-            <div>
-              <span className="text-slate-500 block uppercase font-bold text-[10px]">Student Name</span>
-              <strong className="text-[#0B1A30] text-sm">{queriedResult.studentName}</strong>
-            </div>
-            <div>
-              <span className="text-slate-500 block uppercase font-bold text-[10px]">Index Number</span>
-              <strong className="text-blue-900 font-mono text-sm">{queriedResult.indexNumber}</strong>
-            </div>
-            <div>
-              <span className="text-slate-500 block uppercase font-bold text-[10px]">Aggregates / Points</span>
-              <strong className="text-[#0B1A30] text-sm">{queriedResult.aggregatesOrPoints}</strong>
-            </div>
-            <div>
-              <span className="text-slate-500 block uppercase font-bold text-[10px]">Division / Class</span>
-              <strong className="text-[#0B1A30] text-sm">{queriedResult.divisionOrClass}</strong>
-            </div>
+            {getCandidateMeta(queriedResult).map((meta, idx) => (
+              <div key={idx}>
+                <span className="text-slate-500 block uppercase font-bold text-[10px]">{meta.label}</span>
+                <strong className="text-[#0B1A30] text-sm">{meta.value}</strong>
+              </div>
+            ))}
           </div>
 
           {/* Clean Plain Text Subject Table */}
           <div className="pt-2">
-            <h4 className="text-xs font-bold text-[#0B1A30] uppercase mb-2">Subject Grades Table</h4>
+            <h4 className="text-xs font-bold text-[#0B1A30] uppercase mb-2">Subject Scores Table</h4>
             <table className="w-full text-left text-xs border border-slate-300">
               <thead className="bg-slate-100 text-slate-800 font-bold border-b border-slate-300">
                 <tr>
-                  <th className="p-2 border-r border-slate-300">Code</th>
-                  <th className="p-2 border-r border-slate-300">Subject Name</th>
-                  <th className="p-2 border-r border-slate-300 text-center">Grade</th>
-                  <th className="p-2">Score Remark</th>
+                  <th className="p-2 border-r border-slate-300 font-bold">Subject</th>
+                  <th className="p-2 font-bold">Score</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-300">
-                {queriedResult.subjects.map((subj, idx) => (
+                {getCandidateSubjects(queriedResult).map((subj, idx) => (
                   <tr key={idx} className="hover:bg-slate-50">
-                    <td className="p-2 border-r border-slate-300 font-mono font-bold">{subj.code}</td>
-                    <td className="p-2 border-r border-slate-300 font-semibold text-slate-800">{subj.name}</td>
-                    <td className="p-2 border-r border-slate-300 text-center font-bold font-mono text-blue-900">{subj.grade}</td>
-                    <td className="p-2 text-slate-700">{subj.scoreName}</td>
+                    <td className="p-2 border-r border-slate-300 font-semibold text-slate-800">{subj.subject}</td>
+                    <td className="p-2 font-mono font-bold text-[#0B1A30]">{subj.score}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-
-          {queriedResult.headteacherRemark && (
-            <p className="text-xs text-slate-600 italic border-t border-slate-200 pt-3">
-              Remarks: "{queriedResult.headteacherRemark}"
-            </p>
-          )}
         </div>
       )}
     </div>

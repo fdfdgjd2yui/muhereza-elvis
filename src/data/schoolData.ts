@@ -338,119 +338,37 @@ export const FAQS: FaqItem[] = [
   }
 ];
 
-// Sample UNEB & National Examination Results database
-export const INITIAL_STUDENT_RESULTS: StudentResult[] = [
+// Sample examination results database matching user spreadsheet format
+export const INITIAL_STUDENT_RESULTS: any[] = [
   {
-    indexNumber: 'U0001/001',
-    studentName: 'KATO MARK JOEL',
-    level: 'UCE',
-    examYear: 2025,
-    gender: 'M',
-    aggregates: 8,
-    division: 'Division 1',
-    combinationOrStream: 'Senior 4 Science Stream A',
-    aggregatesOrPoints: '8 Aggregates (Distinction 1 in 8 Subjects)',
-    divisionOrClass: 'Division 1 (Distinction Rank)',
-    headteacherRemark: 'Outstanding candidate performance recorded.',
-    verifiedStatus: true,
-    subjects: [
-      { code: '112', name: 'English Language', score: 88, grade: 'D1', remark: 'Distinction 1' },
-      { code: '456', name: 'Mathematics', score: 92, grade: 'D1', remark: 'Distinction 1' },
-      { code: '535', name: 'Physics', score: 85, grade: 'D1', remark: 'Distinction 1' },
-      { code: '545', name: 'Chemistry', score: 84, grade: 'D1', remark: 'Distinction 1' },
-      { code: '553', name: 'Biology', score: 81, grade: 'D1', remark: 'Distinction 1' },
-      { code: '273', name: 'Geography', score: 89, grade: 'D1', remark: 'Distinction 1' },
-      { code: '241', name: 'History', score: 86, grade: 'D1', remark: 'Distinction 1' },
-      { code: '840', name: 'ICT / Computer Studies', score: 94, grade: 'D1', remark: 'Distinction 1' }
-    ]
+    "Index Number": "U0001/001",
+    "Name": "KATO MARK JOEL",
+    "Gender": "M",
+    "Age": "16",
+    "Math": "54",
+    "English": "72",
+    "indexNumber": "U0001/001",
+    "studentName": "KATO MARK JOEL"
   },
   {
-    indexNumber: 'U0001/002',
-    studentName: 'NAMUBIRU PATRICIA FLAVIA',
-    level: 'UCE',
-    examYear: 2025,
-    gender: 'F',
-    aggregates: 8,
-    division: 'Division 1',
-    combinationOrStream: 'Senior 4 Science Stream B',
-    aggregatesOrPoints: '8 Aggregates (8 Distinctions)',
-    divisionOrClass: 'Division 1 (Distinction Rank)',
-    headteacherRemark: 'Exemplary performance across all sciences and humanistic subjects.',
-    verifiedStatus: true,
-    subjects: [
-      { code: '112', name: 'English Language', score: 82, grade: 'D1', remark: 'Distinction 1' },
-      { code: '456', name: 'Mathematics', score: 88, grade: 'D1', remark: 'Distinction 1' },
-      { code: '535', name: 'Physics', score: 86, grade: 'D1', remark: 'Distinction 1' },
-      { code: '545', name: 'Chemistry', score: 83, grade: 'D1', remark: 'Distinction 1' },
-      { code: '553', name: 'Biology', score: 85, grade: 'D1', remark: 'Distinction 1' },
-      { code: '273', name: 'Geography', score: 84, grade: 'D1', remark: 'Distinction 1' },
-      { code: '840', name: 'ICT / Computer Studies', score: 91, grade: 'D1', remark: 'Distinction 1' },
-      { code: '610', name: 'Art & Design', score: 90, grade: 'D1', remark: 'Distinction 1' }
-    ]
+    "Index Number": "U0001/002",
+    "Name": "NAMUBIRU PATRICIA FLAVIA",
+    "Gender": "F",
+    "Age": "17",
+    "Math": "88",
+    "English": "82",
+    "indexNumber": "U0001/002",
+    "studentName": "NAMUBIRU PATRICIA FLAVIA"
   },
   {
-    indexNumber: 'U0001/501',
-    studentName: 'MUKASA ARTHUR TIMOTHY',
-    level: 'UACE',
-    examYear: 2025,
-    gender: 'M',
-    aggregates: 20,
-    division: 'Principal Pass Division',
-    combinationOrStream: 'PCM / Sub-Math (Physics, Chemistry, Mathematics)',
-    aggregatesOrPoints: '20 Points (A, A, A, 1, 1)',
-    divisionOrClass: 'Principal Pass Division (Maximum Score)',
-    headteacherRemark: 'Admitted to Makerere University (B.Sc Electrical Engineering - Government Sponsorship).',
-    verifiedStatus: true,
-    subjects: [
-      { code: 'P510', name: 'Physics', grade: 'A', remark: 'Principal A (6 Points)' },
-      { code: 'P525', name: 'Chemistry', grade: 'A', remark: 'Principal A (6 Points)' },
-      { code: 'P425', name: 'Pure Mathematics', grade: 'A', remark: 'Principal A (6 Points)' },
-      { code: 'S101', name: 'General Paper', grade: 'D1', remark: 'Distinction 1 (1 Point)' },
-      { code: 'S475', name: 'Sub-Mathematics', grade: 'D1', remark: 'Distinction 1 (1 Point)' }
-    ]
-  },
-  {
-    indexNumber: 'U0001/502',
-    studentName: 'AKELLO CLAIRE GLORIA',
-    level: 'UACE',
-    examYear: 2025,
-    gender: 'F',
-    aggregates: 19,
-    division: 'Principal Pass Division',
-    combinationOrStream: 'BCM / Sub-Math (Biology, Chemistry, Mathematics)',
-    aggregatesOrPoints: '19 Points (A, A, B, 1, 1)',
-    divisionOrClass: 'Principal Pass Division',
-    headteacherRemark: 'Admitted to Makerere University College of Health Sciences (Medicine & Surgery).',
-    verifiedStatus: true,
-    subjects: [
-      { code: 'P530', name: 'Biology', grade: 'A', remark: 'Principal A (6 Points)' },
-      { code: 'P525', name: 'Chemistry', grade: 'A', remark: 'Principal A (6 Points)' },
-      { code: 'P425', name: 'Pure Mathematics', grade: 'B', remark: 'Principal B (5 Points)' },
-      { code: 'S101', name: 'General Paper', grade: 'D1', remark: 'Distinction 1 (1 Point)' },
-      { code: 'S475', name: 'Sub-Mathematics', grade: 'D1', remark: 'Distinction 1 (1 Point)' }
-    ]
-  },
-  {
-    indexNumber: 'U0001/015',
-    studentName: 'SSENYONJO DANIEL',
-    level: 'UCE',
-    examYear: 2026,
-    gender: 'M',
-    aggregates: 10,
-    division: 'Division 1',
-    combinationOrStream: 'Senior 4 Science Stream A',
-    aggregatesOrPoints: '10 Aggregates',
-    divisionOrClass: 'Division 1 (Distinction Rank)',
-    headteacherRemark: 'Strong performance across all national science papers.',
-    verifiedStatus: true,
-    subjects: [
-      { code: '112', name: 'English Language', score: 77, grade: 'D2', remark: 'Distinction 2' },
-      { code: '456', name: 'Mathematics', score: 82, grade: 'D1', remark: 'Distinction 1' },
-      { code: '535', name: 'Physics', score: 81, grade: 'D1', remark: 'Distinction 1' },
-      { code: '545', name: 'Chemistry', score: 78, grade: 'D2', remark: 'Distinction 2' },
-      { code: '553', name: 'Biology', score: 80, grade: 'D1', remark: 'Distinction 1' },
-      { code: '840', name: 'ICT / Computer Studies', score: 86, grade: 'D1', remark: 'Distinction 1' }
-    ]
+    "Index Number": "U0001/003",
+    "Name": "MUKASA ARTHUR TIMOTHY",
+    "Gender": "M",
+    "Age": "18",
+    "Math": "90",
+    "English": "85",
+    "indexNumber": "U0001/003",
+    "studentName": "MUKASA ARTHUR TIMOTHY"
   }
 ];
 
