@@ -69,12 +69,13 @@ export interface EventItem {
 export interface NewsItem {
   id: string;
   title: string;
-  date: string;
-  author: string;
-  category: string;
-  image: string;
-  summary: string;
-  content: string;
+  description: string;
+  date?: string;
+  author?: string;
+  category?: string;
+  image?: string;
+  summary?: string;
+  content?: string;
 }
 
 export interface FaqItem {
@@ -93,21 +94,7 @@ export interface SubjectResult {
   scoreName?: string;
 }
 
-export interface StudentResult {
-  indexNumber: string;
-  studentName: string;
-  level: 'UCE' | 'UACE';
-  examYear: number;
-  gender: 'M' | 'F';
-  aggregates?: number;
-  division?: string;
-  combinationOrStream?: string;
-  aggregatesOrPoints?: string;
-  divisionOrClass?: string;
-  subjects: SubjectResult[];
-  headteacherRemark?: string;
-  verifiedStatus?: boolean;
-}
+export type StudentResult = Record<string, any>;
 
 export interface GoogleSheetsConfig {
   sheetUrl: string;

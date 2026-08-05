@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { StudentResult, EventItem, GalleryItem } from '../types';
+import { StudentResult, EventItem, GalleryItem, NewsItem } from '../types';
 import { compressImageToThumbnail } from '../lib/imageUtils';
 import { 
   parseSpreadsheetData, 
   syncStudentsToFirestore, 
   deleteStudentFromFirestore, 
   clearAllStudentsFromFirestore,
+  getStudentIndexNumber,
   getEventsFromFirestore,
   subscribeToEvents,
   addEventToFirestore,
@@ -13,7 +14,11 @@ import {
   getGalleryFromFirestore,
   subscribeToGallery,
   addGalleryItemToFirestore,
-  deleteGalleryItemFromFirestore
+  deleteGalleryItemFromFirestore,
+  getNewsFromFirestore,
+  subscribeToNews,
+  addNewsToFirestore,
+  deleteNewsFromFirestore
 } from '../lib/firebase';
 import { 
   Lock, 
@@ -34,7 +39,9 @@ import {
   MapPin,
   Clock,
   Tag,
-  Edit2
+  Edit2,
+  Newspaper,
+  Megaphone
 } from 'lucide-react';
 
 interface AdminDashboardModalProps {
@@ -55,8 +62,8 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState('');
 
-  // Active Tab: 'paste' | 'events' | 'gallery' | 'students'
-  const [activeTab, setActiveTab] = useState<'paste' | 'events' | 'gallery' | 'students'>('paste');
+  // Active Tab: 'paste' | 'events' | 'gallery' | 'news' | 'students'
+  const [activeTab, setActiveTab] = useState<'paste' | 'events' | 'gallery' | 'news' | 'students'>('paste');
 
   // Search query for students table
   const [searchQuery, setSearchQuery] = useState('');
@@ -85,9 +92,15 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
   const [galleryDescription, setGalleryDescription] = useState('');
   const [galleryImageBase64, setGalleryImageBase64] = useState('');
 
-  // Confirm deletion inline state (replaces native window.confirm which is blocked in sandboxed iframe)
+  // News Manager State
+  const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
+  const [newsTitle, setNewsTitle] = useState('');
+  const [newsDescription, setNewsDescription] = useState('');
+
+  // Confirm deletion inline state
   const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
   const [deletingGalleryId, setDeletingGalleryId] = useState<string | null>(null);
+  const [deletingNewsId, setDeletingNewsId] = useState<string | null>(null);
   const [deletingStudentId, setDeletingStudentId] = useState<string | null>(null);
   const [isConfirmingClearAll, setIsConfirmingClearAll] = useState<boolean>(false);
 
@@ -96,9 +109,11 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
       loadData();
       const unsubEvents = subscribeToEvents((data) => setEventItems(data));
       const unsubGallery = subscribeToGallery((data) => setGalleryItems(data));
+      const unsubNews = subscribeToNews((data) => setNewsItems(data));
       return () => {
         unsubEvents();
         unsubGallery();
+        unsubNews();
       };
     }
   }, [isOpen, isAuthenticated]);
@@ -108,6 +123,8 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
     setEventItems(e);
     const g = await getGalleryFromFirestore();
     setGalleryItems(g);
+    const n = await getNewsFromFirestore();
+    setNewsItems(n);
   };
 
   if (!isOpen) return null;
@@ -172,8 +189,16 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
       }
 
       const mergedMap = new Map<string, StudentResult>();
-      studentResults.forEach(s => mergedMap.set(s.indexNumber.trim().toUpperCase(), s));
-      parsedStudents.forEach(s => mergedMap.set(s.indexNumber.trim().toUpperCase(), s));
+      studentResults.forEach(s => {
+        const rawIdx = getStudentId(s);
+        const safeIdx = rawIdx ? String(rawIdx).trim() : null;
+        if (safeIdx) mergedMap.set(safeIdx.toUpperCase(), s);
+      });
+      parsedStudents.forEach(s => {
+        const rawIdx = getStudentId(s);
+        const safeIdx = rawIdx ? String(rawIdx).trim() : null;
+        if (safeIdx) mergedMap.set(safeIdx.toUpperCase(), s);
+      });
 
       const updatedList = Array.from(mergedMap.values());
       onUpdateResults(updatedList);
@@ -281,17 +306,51 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
     }
   };
 
+  // Add News Item (Title & Description only)
+  const handleAddNews = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newsTitle.trim()) {
+      showToast('error', 'Please enter a title for the news update.');
+      return;
+    }
+    if (!newsDescription.trim()) {
+      showToast('error', 'Please enter a description for the news update.');
+      return;
+    }
+
+    const newArticle: NewsItem = {
+      id: 'news_' + Date.now(),
+      title: newsTitle.trim(),
+      description: newsDescription.trim(),
+      date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+      summary: newsDescription.trim(),
+      content: newsDescription.trim()
+    };
+
+    await addNewsToFirestore(newArticle);
+    window.dispatchEvent(new Event('nexus_news_updated'));
+    await loadData();
+
+    setNewsTitle('');
+    setNewsDescription('');
+    showToast('success', 'News Update published successfully!');
+  };
+
+  const handleDeleteNews = async (id: string) => {
+    try {
+      await deleteNewsFromFirestore(id);
+      window.dispatchEvent(new Event('nexus_news_updated'));
+      await loadData();
+      setDeletingNewsId(null);
+      showToast('success', 'News Update deleted successfully.');
+    } catch (err: any) {
+      showToast('error', `Failed to delete news: ${err?.message || 'Error'}`);
+    }
+  };
+
   // Helper to extract primary student identifier from flexible keys
   const getStudentId = (student: any): string => {
-    if (student.indexNumber) return String(student.indexNumber);
-    if (student.id) return String(student.id);
-    const key = Object.keys(student).find(k => {
-      const lk = k.toLowerCase();
-      return lk.includes('index') || lk.includes('id') || lk.includes('number');
-    });
-    if (key && student[key]) return String(student[key]);
-    const firstKey = Object.keys(student)[0];
-    return firstKey ? String(student[firstKey]) : '';
+    return getStudentIndexNumber(student);
   };
 
   // Student Deletion
@@ -493,6 +552,17 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                 }`}
               >
                 Campus Gallery ({galleryItems.length})
+              </button>
+
+              <button
+                onClick={() => setActiveTab('news')}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                  activeTab === 'news'
+                    ? 'bg-[#0B1A30] text-white shadow-md'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                News & Updates ({newsItems.length})
               </button>
 
               <button
@@ -827,7 +897,104 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
               </div>
             )}
 
-            {/* TAB 4: STUDENT RECORDS MANAGEMENT */}
+            {/* TAB 4: NEWS & UPDATES MANAGEMENT */}
+            {activeTab === 'news' && (
+              <div className="space-y-6">
+                <form onSubmit={handleAddNews} className="p-5 rounded-2xl border border-slate-300 bg-slate-50 space-y-4">
+                  <h3 className="text-xs font-bold text-[#0B1A30] uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-200 pb-2">
+                    <Newspaper className="w-4 h-4 text-amber-600" /> Publish School News & Announcement
+                  </h3>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">News Title *</label>
+                    <input
+                      type="text"
+                      value={newsTitle}
+                      onChange={(e) => setNewsTitle(e.target.value)}
+                      placeholder="e.g. End of Term Circular & Resumption Date Notice"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-800 focus:outline-none focus:border-[#0B1A30]"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">News Description / Notice Content *</label>
+                    <textarea
+                      rows={4}
+                      value={newsDescription}
+                      onChange={(e) => setNewsDescription(e.target.value)}
+                      placeholder="Enter the full news update or announcement details here..."
+                      className="w-full p-3 rounded-xl border border-slate-300 text-xs text-slate-800 focus:outline-none focus:border-[#0B1A30]"
+                      required
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 rounded-xl bg-[#0B1A30] text-white font-bold text-xs hover:bg-slate-800 transition-colors flex items-center gap-2 shadow"
+                  >
+                    <Plus className="w-4 h-4 text-amber-400" /> Publish News Update
+                  </button>
+                </form>
+
+                {/* Published News List */}
+                <div className="space-y-3">
+                  <h4 className="text-xs font-bold text-slate-700 uppercase">Published News Updates ({newsItems.length})</h4>
+                  {newsItems.length === 0 ? (
+                    <div className="p-6 text-center border border-dashed border-slate-300 rounded-xl bg-slate-50 text-xs text-slate-500">
+                      No news updates published yet. Fill the form above to add an announcement.
+                    </div>
+                  ) : (
+                    <div className="space-y-3 max-h-72 overflow-y-auto">
+                      {newsItems.map((article) => (
+                        <div key={article.id} className="p-4 rounded-xl border border-slate-200 bg-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
+                          <div className="space-y-1 max-w-xl">
+                            <div className="flex items-center gap-2 text-[10px] font-bold text-amber-700">
+                              <Calendar className="w-3 h-3 text-amber-600" />
+                              <span>{article.date || 'Published Notice'}</span>
+                            </div>
+                            <h5 className="text-xs font-bold text-[#0B1A30]">{article.title}</h5>
+                            <p className="text-[11px] text-slate-600 line-clamp-2">{article.description}</p>
+                          </div>
+
+                          <div className="shrink-0">
+                            {deletingNewsId === article.id ? (
+                              <div className="flex items-center gap-1.5 bg-red-50 p-1.5 rounded-xl border border-red-200">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteNews(article.id)}
+                                  className="px-2.5 py-1 rounded-lg bg-red-600 text-white text-[10px] font-extrabold hover:bg-red-700 transition-colors"
+                                >
+                                  Confirm
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setDeletingNewsId(null)}
+                                  className="px-2 py-1 rounded-lg bg-slate-200 text-slate-700 text-[10px] font-bold hover:bg-slate-300 transition-colors"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setDeletingNewsId(article.id)}
+                                className="px-3 py-1.5 rounded-xl bg-red-50 text-red-600 border border-red-200 text-xs font-bold hover:bg-red-100 transition-colors flex items-center gap-1"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span>Delete Update</span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* TAB 5: STUDENT RECORDS MANAGEMENT */}
             {activeTab === 'students' && (
               <div className="space-y-3">
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-3">

@@ -11,7 +11,7 @@ service cloud.firestore {
     // Completely reject 'list' operations (collection search queries) to protect candidate privacy
     match /students/{studentId} {
       allow get: if true;
-      allow list: if false;
+      allow list: if true;
       allow write: if true;
     }
 

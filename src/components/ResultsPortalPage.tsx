@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { INITIAL_STUDENT_RESULTS } from '../data/schoolData';
 import { StudentResult } from '../types';
-import { getStudentFromFirestore } from '../lib/firebase';
-import { Search, AlertCircle, RefreshCw } from 'lucide-react';
+import { getStudentFromFirestore, getStudentIndexNumber, getAllStudentsFromFirestore } from '../lib/firebase';
+import { Search, AlertCircle, RefreshCw, BarChart2, ChevronLeft, ChevronRight, X } from 'lucide-react';
 
 interface ResultsPortalPageProps {
   studentResults?: StudentResult[];
@@ -18,7 +18,37 @@ export const ResultsPortalPage: React.FC<ResultsPortalPageProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
 
+  // Performance Board / Leaderboard states
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(false);
+  const [leaderboardData, setLeaderboardData] = useState<StudentResult[]>([]);
+  const [leaderboardSearch, setLeaderboardSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+
   const allResults = externalResults || INITIAL_STUDENT_RESULTS;
+
+  const handleToggleLeaderboard = async () => {
+    if (showLeaderboard) {
+      setShowLeaderboard(false);
+      return;
+    }
+
+    setShowLeaderboard(true);
+    setIsLoadingLeaderboard(true);
+    try {
+      const records = await getAllStudentsFromFirestore();
+      if (records && records.length > 0) {
+        setLeaderboardData(records);
+      } else {
+        setLeaderboardData(allResults);
+      }
+    } catch {
+      setLeaderboardData(allResults);
+    } finally {
+      setIsLoadingLeaderboard(false);
+    }
+  };
 
   const handleCheckResults = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,17 +68,14 @@ export const ResultsPortalPage: React.FC<ResultsPortalPageProps> = ({
     setHasSearched(true);
 
     try {
-      // Network delay simulation for UNEB server query
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      await new Promise((resolve) => setTimeout(resolve, 600));
 
       // 1. Check in local admin array first
-      const matchedLocal = allResults.find(
-        (s: any) => {
-          const sIdx = String(s['Index Number'] || s['Index'] || s.indexNumber || s.id || '').trim().toUpperCase();
-          const sNorm = sIdx.replace(/[\s/]/g, '');
-          return sIdx === cleanIndex || sNorm === normalizedIndex;
-        }
-      );
+      const matchedLocal = allResults.find((s: any) => {
+        const sIdx = getStudentIndexNumber(s);
+        const sNorm = sIdx.replace(/[\s/]/g, '');
+        return sIdx === cleanIndex || sNorm === normalizedIndex;
+      });
 
       if (matchedLocal) {
         setQueriedResult(matchedLocal);
@@ -71,115 +98,113 @@ export const ResultsPortalPage: React.FC<ResultsPortalPageProps> = ({
     }
   };
 
-  const getCandidateMeta = (result: any) => {
+  const getDynamicKeys = (result: any) => {
     if (!result) return [];
-
-    const metaList: { label: string; value: string }[] = [];
-
-    // Always extract Student Name if present
-    const nameVal = result['Name'] || result['Student Name'] || result.studentName || result['name'];
-    if (nameVal) metaList.push({ label: 'Student Name', value: String(nameVal) });
-
-    // Always extract Index Number if present
-    const indexVal = result['Index Number'] || result['Index'] || result.indexNumber || result['id'];
-    if (indexVal) metaList.push({ label: 'Index Number', value: String(indexVal) });
-
-    // Extract any other metadata fields (e.g., Gender, Age)
-    const EXCLUDED_KEYS = new Set([
-      'indexNumber', 'studentName', 'index', 'name', 'id',
-      'Index Number', 'Student Name', 'Name', 'Index', 'ID',
-      'updatedAt', 'createdAt', 'subjects', 'verifiedStatus',
-      'level', 'examYear', 'combinationOrStream', 'headteacherRemark',
-      'aggregates', 'division', 'aggregatesOrPoints', 'divisionOrClass'
+    const EXCLUDED = new Set([
+      'updatedAt', 'createdAt', 'level', 'examYear', 'combinationOrStream',
+      'headteacherRemark', 'aggregates', 'division', 'aggregatesOrPoints',
+      'divisionOrClass', 'verifiedStatus'
     ]);
-
-    Object.keys(result).forEach((key) => {
-      if (EXCLUDED_KEYS.has(key)) return;
-      const lk = key.toLowerCase();
-      if (lk.includes('gender') || lk.includes('sex') || lk.includes('age') || lk.includes('class') || lk.includes('stream')) {
-        metaList.push({ label: key, value: String(result[key]) });
-      }
+    return Object.keys(result).filter(k => {
+      const lk = k.toLowerCase().trim();
+      return (
+        !EXCLUDED.has(k) &&
+        lk !== 'level' &&
+        lk !== 'exam year' && lk !== 'examyear' &&
+        lk !== 'combination or stream' && lk !== 'combinationorstream' &&
+        lk !== 'headteacher remark' && lk !== 'headteacherremark' &&
+        lk !== 'verified status' && lk !== 'verifiedstatus' &&
+        lk !== 'aggregates' &&
+        lk !== 'aggregates or points' && lk !== 'aggregatesorpoints' &&
+        lk !== 'division' &&
+        lk !== 'division or class' && lk !== 'divisionorclass'
+      );
     });
-
-    return metaList;
   };
 
-  const getCandidateSubjects = (result: any): { subject: string; score: string }[] => {
-    if (!result) return [];
-
-    // 1. Array format
-    if (Array.isArray(result.subjects) && result.subjects.length > 0) {
-      return result.subjects.map((s: any) => ({
-        subject: s.name || s.subject || s.code || 'Subject',
-        score: s.score !== undefined ? String(s.score) : String(s.grade || s.scoreName || s.remark || '-')
-      }));
-    }
-
-    // 2. Direct key-value format (e.g. Math: 54, English: 72)
-    const EXCLUDED_KEYS = new Set([
-      'indexNumber', 'studentName', 'index', 'name', 'id',
-      'Index Number', 'Student Name', 'Name', 'Index', 'ID',
-      'Gender', 'gender', 'Sex', 'sex', 'Age', 'age',
-      'updatedAt', 'createdAt', 'subjects', 'verifiedStatus',
-      'level', 'examYear', 'combinationOrStream', 'headteacherRemark',
-      'aggregates', 'division', 'aggregatesOrPoints', 'divisionOrClass'
-    ]);
-
-    const subjectList: { subject: string; score: string }[] = [];
-    Object.keys(result).forEach((key) => {
-      if (EXCLUDED_KEYS.has(key)) return;
-      const val = result[key];
-      if (val !== undefined && val !== null && val !== '') {
-        subjectList.push({
-          subject: key,
-          score: String(val)
-        });
-      }
-    });
-
-    return subjectList;
+  const formatHeaderTitle = (key: string): string => {
+    const words = key
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .replace(/[_-]+/g, ' ')
+      .trim();
+    return words
+      .split(/\s+/)
+      .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(' ');
   };
+
+  // Filter leaderboard data by candidate name or index number
+  const filteredLeaderboard = leaderboardData.filter(s => {
+    if (!leaderboardSearch.trim()) return true;
+    const q = leaderboardSearch.toLowerCase().trim();
+    return Object.values(s).some(val => {
+      if (val === null || val === undefined) return false;
+      return String(val).toLowerCase().includes(q);
+    });
+  });
+
+  const totalPages = Math.ceil(filteredLeaderboard.length / pageSize) || 1;
+  const paginatedLeaderboard = filteredLeaderboard.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+
+  const leaderboardHeaders = leaderboardData.length > 0 ? getDynamicKeys(leaderboardData[0]) : [];
 
   return (
-    <div id="uneb-results" className="bg-white text-slate-900 py-6 px-4 sm:px-6 max-w-4xl mx-auto">
-      <div className="border-b border-slate-300 pb-4 mb-6">
+    <div id="uneb-results" className="bg-white text-slate-900 py-6 px-4 sm:px-6 max-w-5xl mx-auto space-y-8">
+      <div className="border-b border-slate-300 pb-4">
         <h2 className="text-2xl font-bold text-[#0B1A30]">Official UNEB Results Verification</h2>
         <p className="text-xs text-slate-600 mt-1">
           Direct lookup and verification of candidate examination score sheets.
         </p>
       </div>
 
-      {/* Input Box & Button */}
-      <form onSubmit={handleCheckResults} className="space-y-4 max-w-xl">
-        <div>
-          <label htmlFor="uneb-index-input" className="block text-xs font-bold text-[#0B1A30] uppercase mb-1">
-            Enter Candidate Index Number
-          </label>
-          <div className="flex gap-2">
-            <input
-              id="uneb-index-input"
-              type="text"
-              required
-              placeholder="e.g. U0001/001"
-              value={indexNumberInput}
-              onChange={(e) => setIndexNumberInput(e.target.value)}
-              className="flex-1 px-3 py-2 border border-slate-300 rounded font-mono text-sm text-slate-900 uppercase focus:outline-none focus:border-[#0B1A30]"
-            />
-            <button
-              type="submit"
-              disabled={isSearching}
-              className="px-5 py-2 bg-[#0B1A30] text-white font-bold text-xs rounded hover:bg-slate-800 transition-colors flex items-center gap-1.5 disabled:opacity-50"
-            >
-              {isSearching ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
-              <span>Check Results</span>
-            </button>
+      {/* Input Box & Action Buttons */}
+      <div className="space-y-4 max-w-xl">
+        <form onSubmit={handleCheckResults} className="space-y-4">
+          <div>
+            <label htmlFor="uneb-index-input" className="block text-xs font-bold text-[#0B1A30] uppercase mb-1">
+              Enter Candidate Index Number
+            </label>
+            <div className="flex gap-2">
+              <input
+                id="uneb-index-input"
+                type="text"
+                required
+                placeholder="e.g. U0001/001"
+                value={indexNumberInput}
+                onChange={(e) => setIndexNumberInput(e.target.value)}
+                className="flex-1 px-3 py-2 border border-slate-300 rounded font-mono text-sm text-slate-900 uppercase focus:outline-none focus:border-[#0B1A30]"
+              />
+              <button
+                type="submit"
+                disabled={isSearching}
+                className="px-5 py-2 bg-[#0B1A30] text-white font-bold text-xs rounded hover:bg-slate-800 transition-colors flex items-center gap-1.5 disabled:opacity-50 shadow-sm"
+              >
+                {isSearching ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+                <span>Check Results</span>
+              </button>
+            </div>
           </div>
+        </form>
+
+        {/* Prominent Public Leaderboard Toggle Button */}
+        <div className="pt-2">
+          <button
+            type="button"
+            onClick={handleToggleLeaderboard}
+            className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2 border border-amber-400"
+          >
+            <BarChart2 className="w-4 h-4 text-slate-950" />
+            <span>📊 View Full Candidate Performance Board</span>
+          </button>
         </div>
-      </form>
+      </div>
 
       {/* Searching Data Delay Indicator */}
       {isSearching && (
-        <div className="mt-6 p-4 bg-slate-50 border border-slate-200 rounded-xl flex items-center gap-3 text-xs font-semibold text-slate-700 animate-pulse">
+        <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex items-center gap-3 text-xs font-semibold text-slate-700 animate-pulse">
           <RefreshCw className="w-4 h-4 text-amber-600 animate-spin shrink-0" />
           <span>Fetching candidate data from UNEB records server...</span>
         </div>
@@ -187,53 +212,194 @@ export const ResultsPortalPage: React.FC<ResultsPortalPageProps> = ({
 
       {/* Error Message */}
       {hasSearched && !isSearching && errorMessage && (
-        <div className="mt-6 p-3 bg-red-50 border border-red-300 text-red-800 rounded text-xs font-semibold flex items-center gap-2">
+        <div className="p-3 bg-red-50 border border-red-300 text-red-800 rounded text-xs font-semibold flex items-center gap-2">
           <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
           <span>{errorMessage}</span>
         </div>
       )}
 
-      {/* Plain Text Results Table */}
+      {/* Dynamic Results Table for Individual Search */}
       {!isSearching && queriedResult && (
-        <div className="mt-8 border border-slate-300 rounded p-6 space-y-4">
-          <div className="flex justify-between items-start border-b border-slate-300 pb-3">
-            <div>
-              <h3 className="text-lg font-bold text-[#0B1A30]">Nexus Academy - Candidate Result Slip</h3>
-              <p className="text-xs text-slate-600">Official Candidate Score Breakdown</p>
-            </div>
+        <div className="border border-slate-300 rounded overflow-hidden shadow-sm">
+          <div className="bg-[#0B1A30] p-4 text-white">
+            <h3 className="text-base font-bold">Nexus Academy - Candidate Examination Slip</h3>
+            <p className="text-xs text-slate-300">Official Candidate Score Breakdown</p>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-            {getCandidateMeta(queriedResult).map((meta, idx) => (
-              <div key={idx}>
-                <span className="text-slate-500 block uppercase font-bold text-[10px]">{meta.label}</span>
-                <strong className="text-[#0B1A30] text-sm">{meta.value}</strong>
-              </div>
-            ))}
-          </div>
-
-          {/* Clean Plain Text Subject Table */}
-          <div className="pt-2">
-            <h4 className="text-xs font-bold text-[#0B1A30] uppercase mb-2">Subject Scores Table</h4>
-            <table className="w-full text-left text-xs border border-slate-300">
-              <thead className="bg-slate-100 text-slate-800 font-bold border-b border-slate-300">
-                <tr>
-                  <th className="p-2 border-r border-slate-300 font-bold">Subject</th>
-                  <th className="p-2 font-bold">Score</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-300">
-                {getCandidateSubjects(queriedResult).map((subj, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50">
-                    <td className="p-2 border-r border-slate-300 font-semibold text-slate-800">{subj.subject}</td>
-                    <td className="p-2 font-mono font-bold text-[#0B1A30]">{subj.score}</td>
+          <div className="overflow-x-auto p-4 bg-white">
+            {getDynamicKeys(queriedResult).length === 0 ? (
+              <p className="text-xs text-slate-500 italic">No score columns available.</p>
+            ) : (
+              <table className="w-full text-left text-xs border border-slate-200">
+                <thead className="bg-slate-100 text-slate-800 font-bold border-b border-slate-200">
+                  <tr>
+                    {getDynamicKeys(queriedResult).map((colKey) => (
+                      <th key={colKey} className="p-3 border-r border-slate-200 font-bold uppercase whitespace-nowrap">
+                        {formatHeaderTitle(colKey)}
+                      </th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  <tr className="hover:bg-slate-50">
+                    {getDynamicKeys(queriedResult).map((colKey) => {
+                      const cellVal = queriedResult[colKey];
+                      const displayVal = cellVal !== undefined && cellVal !== null && cellVal !== '' ? String(cellVal) : '-';
+                      const lk = colKey.toLowerCase();
+                      const isAnchor = lk.includes('index') || lk.includes('id') || lk.includes('number');
+                      return (
+                        <td
+                          key={colKey}
+                          className={`p-3 border-r border-slate-200 whitespace-nowrap ${
+                            isAnchor
+                              ? 'font-mono font-bold text-[#0B1A30]'
+                              : 'font-semibold text-slate-800'
+                          }`}
+                        >
+                          {displayVal}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                </tbody>
+              </table>
+            )}
           </div>
+        </div>
+      )}
+
+      {/* PUBLIC CANDIDATE PERFORMANCE BOARD (LEADERBOARD) */}
+      {showLeaderboard && (
+        <div className="border border-amber-300 rounded-2xl bg-slate-50 p-6 space-y-4 shadow-lg animate-in fade-in duration-200">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-[11px] font-extrabold uppercase tracking-wider mb-1">
+                <BarChart2 className="w-3.5 h-3.5 text-amber-600" />
+                Public Examination Leaderboard
+              </div>
+              <h3 className="text-lg font-black text-[#0B1A30]">Full Candidate Performance Board</h3>
+              <p className="text-xs text-slate-600">Showing all registered student records from the academic dataset.</p>
+            </div>
+            
+            <button
+              onClick={() => setShowLeaderboard(false)}
+              className="p-1.5 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 transition-colors"
+              title="Close Leaderboard"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Search bar above table */}
+          <div className="relative max-w-md">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search by student name or index number..."
+              value={leaderboardSearch}
+              onChange={(e) => {
+                setLeaderboardSearch(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-300 text-xs font-medium text-slate-800 focus:outline-none focus:border-[#0B1A30] bg-white shadow-sm"
+            />
+          </div>
+
+          {/* Table Container */}
+          {isLoadingLeaderboard ? (
+            <div className="p-8 text-center bg-white border border-slate-200 rounded-xl space-y-2 animate-pulse">
+              <RefreshCw className="w-6 h-6 text-amber-600 animate-spin mx-auto" />
+              <p className="text-xs font-bold text-slate-700">Loading full candidate performance records...</p>
+            </div>
+          ) : leaderboardData.length === 0 ? (
+            <div className="p-8 text-center bg-white border border-slate-200 rounded-xl text-xs text-slate-500">
+              No candidate records found in database.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="overflow-x-auto border border-slate-200 rounded-xl bg-white shadow-sm max-h-96">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-[#0B1A30] text-white font-bold sticky top-0 z-10">
+                    <tr>
+                      <th className="p-3 border-r border-slate-800 font-bold uppercase whitespace-nowrap">#</th>
+                      {leaderboardHeaders.map((colKey) => (
+                        <th key={colKey} className="p-3 border-r border-slate-800 font-bold uppercase whitespace-nowrap">
+                          {formatHeaderTitle(colKey)}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200">
+                    {paginatedLeaderboard.length === 0 ? (
+                      <tr>
+                        <td colSpan={leaderboardHeaders.length + 1} className="p-6 text-center text-slate-500 italic">
+                          No matching candidates found for "{leaderboardSearch}".
+                        </td>
+                      </tr>
+                    ) : (
+                      paginatedLeaderboard.map((row, rIdx) => {
+                        const globalIndex = (currentPage - 1) * pageSize + rIdx + 1;
+                        return (
+                          <tr key={rIdx} className="hover:bg-amber-50/40 transition-colors">
+                            <td className="p-3 font-mono text-slate-400 font-bold border-r border-slate-100">{globalIndex}</td>
+                            {leaderboardHeaders.map((colKey) => {
+                              const cellVal = row[colKey];
+                              const displayVal = cellVal !== undefined && cellVal !== null && cellVal !== '' ? String(cellVal) : '-';
+                              const lk = colKey.toLowerCase();
+                              const isAnchor = lk.includes('index') || lk.includes('id') || lk.includes('number');
+                              return (
+                                <td
+                                  key={colKey}
+                                  className={`p-3 border-r border-slate-100 whitespace-nowrap ${
+                                    isAnchor
+                                      ? 'font-mono font-bold text-[#0B1A30]'
+                                      : 'font-semibold text-slate-800'
+                                  }`}
+                                >
+                                  {displayVal}
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination Controls */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600 bg-white p-3 border border-slate-200 rounded-xl">
+                <div>
+                  Showing <strong>{filteredLeaderboard.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}</strong> to{' '}
+                  <strong>{Math.min(currentPage * pageSize, filteredLeaderboard.length)}</strong> of <strong>{filteredLeaderboard.length}</strong> candidates
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="p-1.5 rounded-lg border border-slate-300 hover:bg-slate-100 disabled:opacity-40 transition-colors flex items-center gap-1 font-semibold"
+                  >
+                    <ChevronLeft className="w-4 h-4" /> Previous
+                  </button>
+                  <span className="font-bold text-[#0B1A30] px-2">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage >= totalPages}
+                    className="p-1.5 rounded-lg border border-slate-300 hover:bg-slate-100 disabled:opacity-40 transition-colors flex items-center gap-1 font-semibold"
+                  >
+                    Next <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
   );
 };
+

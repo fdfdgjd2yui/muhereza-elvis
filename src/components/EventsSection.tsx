@@ -47,20 +47,26 @@ export const EventsSection: React.FC = () => {
       // fallback
     }
 
+    const cleanDesc = description.replace(/\r?\n/g, '\\n').replace(/[,;]/g, '\\$&');
+    const cleanTitle = title.replace(/[,;]/g, '\\$&');
+
     const icsContent = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
       'PRODID:-//Nexus Academy Uganda//Events//EN',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH',
       'BEGIN:VEVENT',
-      `SUMMARY:${title}`,
-      `DESCRIPTION:${description.replace(/\n/g, '\\n')}`,
+      `SUMMARY:${cleanTitle}`,
+      `DESCRIPTION:${cleanDesc}`,
       `LOCATION:${location}`,
       `DTSTART:${startDateStr}`,
       `DTEND:${endDateStr}`,
+      'STATUS:CONFIRMED',
       'BEGIN:VALARM',
       'TRIGGER:-PT1H',
       'ACTION:DISPLAY',
-      'DESCRIPTION:Reminder for Nexus Academy event',
+      `DESCRIPTION:Reminder for ${cleanTitle}`,
       'END:VALARM',
       'END:VEVENT',
       'END:VCALENDAR'
@@ -421,10 +427,10 @@ export const EventsSection: React.FC = () => {
               <div className="pt-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
                 <button
                   onClick={() => setShowReminderMenu(!showReminderMenu)}
-                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[#0B1A30] text-white text-xs font-bold hover:bg-slate-800 transition-colors flex items-center justify-center gap-2"
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[#0B1A30] text-white text-xs font-bold hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 shadow"
                 >
                   <Bell className="w-4 h-4 text-amber-400" />
-                  <span>{showReminderMenu ? 'Hide Reminder Options' : 'Set Calendar Reminder'}</span>
+                  <span>{showReminderMenu ? 'Hide Reminder Options' : '📅 Set Calendar Reminder'}</span>
                 </button>
 
                 <button

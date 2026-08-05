@@ -282,28 +282,7 @@ export const UPCOMING_EVENTS: EventItem[] = [
 
 export const INITIAL_GALLERY_ITEMS: GalleryItem[] = [];
 
-export const NEWS_ARTICLES: NewsItem[] = [
-  {
-    id: 'news_1',
-    title: 'Nexus Academy Scholars Record Top UNEB Distinction Performance in UCE & UACE',
-    date: 'July 28, 2026',
-    author: 'Academic Registrar',
-    category: 'Academics',
-    image: '',
-    summary: 'Over 94% of Senior 4 candidates scored Division 1 in national examinations, establishing Nexus among top performing schools in Uganda.',
-    content: 'Nexus Academy candidates achieved outstanding results in the latest UCE and UACE National Examinations. Science subjects recorded impressive distinction rates in Physics, Chemistry, Biology, and Mathematics.'
-  },
-  {
-    id: 'news_2',
-    title: 'Commissioning of New Modern Computer Laboratory & Science Annex',
-    date: 'August 02, 2026',
-    author: 'Board of Governors',
-    category: 'Facilities',
-    image: '',
-    summary: 'Fully equipped computer room with high-speed internet connectivity and new laboratory apparatus commissioned for students.',
-    content: 'The Board of Governors is pleased to announce the opening of the new Computer Lab and Science Annex. The facility accommodates up to 80 students simultaneously for UNEB practical sessions.'
-  }
-];
+export const NEWS_ARTICLES: NewsItem[] = [];
 
 export const FAQS: FaqItem[] = [
   {
@@ -338,37 +317,58 @@ export const FAQS: FaqItem[] = [
   }
 ];
 
-// Sample examination results database matching user spreadsheet format
+// Sample examination results database matching literal user spreadsheet format
 export const INITIAL_STUDENT_RESULTS: any[] = [
   {
-    "Index Number": "U0001/001",
-    "Name": "KATO MARK JOEL",
-    "Gender": "M",
-    "Age": "16",
-    "Math": "54",
-    "English": "72",
-    "indexNumber": "U0001/001",
-    "studentName": "KATO MARK JOEL"
+    "index number": "U0001/001",
+    "name": "KATO MARK JOEL",
+    "gender": "M",
+    "age": "16",
+    "math": "54",
+    "english": "72",
+    "physics": "68",
+    "chemistry": "70",
+    "biology": "65",
+    "history": "80",
+    "geography": "74",
+    "ict": "85",
+    "agric": "78",
+    "art": "82",
+    "economics": "70"
   },
   {
-    "Index Number": "U0001/002",
-    "Name": "NAMUBIRU PATRICIA FLAVIA",
-    "Gender": "F",
-    "Age": "17",
-    "Math": "88",
-    "English": "82",
-    "indexNumber": "U0001/002",
-    "studentName": "NAMUBIRU PATRICIA FLAVIA"
+    "index number": "U0001/002",
+    "name": "NAMUBIRU PATRICIA FLAVIA",
+    "gender": "F",
+    "age": "17",
+    "math": "88",
+    "english": "82",
+    "physics": "90",
+    "chemistry": "85",
+    "biology": "88",
+    "history": "92",
+    "geography": "86",
+    "ict": "95",
+    "agric": "84",
+    "art": "88",
+    "economics": "90"
   },
   {
-    "Index Number": "U0001/003",
-    "Name": "MUKASA ARTHUR TIMOTHY",
-    "Gender": "M",
-    "Age": "18",
-    "Math": "90",
-    "English": "85",
-    "indexNumber": "U0001/003",
-    "studentName": "MUKASA ARTHUR TIMOTHY"
+    "index number": "U0001/003",
+    "name": "MUKASA ARTHUR TIMOTHY",
+    "gender": "M",
+    "age": "18",
+    "math": "90",
+    "english": "85",
+    "physics": "88",
+    "chemistry": "84",
+    "biology": "82",
+    "history": "86",
+    "geography": "88",
+    "ict": "92",
+    "agric": "80",
+    "art": "85",
+    "economics": "88"
   }
 ];
 

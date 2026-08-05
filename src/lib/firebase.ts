@@ -75,6 +75,87 @@ export function sanitizeForFirestore<T>(obj: T): T {
   return obj;
 }
 
+// Forbidden injected fields that must never be generated, saved, or processed
+const FORBIDDEN_FIELDS_LOWER = new Set([
+  'level',
+  'exam year',
+  'examyear',
+  'combination or stream',
+  'combinationorstream',
+  'headteacher remark',
+  'headteacherremark',
+  'verified status',
+  'verifiedstatus',
+  'aggregates',
+  'aggregates or points',
+  'aggregatesorpoints',
+  'division',
+  'division or class',
+  'divisionorclass'
+]);
+
+/**
+ * Clean student object to retain ONLY literal raw key-values
+ */
+export function sanitizeStudentObj(obj: any): Record<string, any> {
+  if (!obj || typeof obj !== 'object') return {};
+  const clean: Record<string, any> = {};
+  Object.keys(obj).forEach(key => {
+    const lk = key.toLowerCase().trim();
+    if (!FORBIDDEN_FIELDS_LOWER.has(lk) && key !== 'updatedAt' && key !== 'createdAt') {
+      clean[key] = obj[key];
+    }
+  });
+  return clean;
+}
+
+/**
+ * Extract index identifier from student object for lookup & Firestore document indexing
+ * Safe trim fallback & flexible key matching rules
+ */
+export function getStudentIndexNumber(item: any): string {
+  if (!item || typeof item !== 'object') return '';
+
+  const rawIndex =
+    item['index number'] ||
+    item.indexNumber ||
+    item['index no'] ||
+    item.indexNo ||
+    item.index ||
+    item['student id'] ||
+    item.studentId ||
+    item['student number'] ||
+    item.studentNumber ||
+    item.id;
+
+  const safeIndex = rawIndex !== undefined && rawIndex !== null ? String(rawIndex).trim() : null;
+  if (safeIndex && safeIndex.length > 0) {
+    return safeIndex.toUpperCase();
+  }
+
+  // Flexible key matching if direct properties weren't found
+  const keys = Object.keys(item);
+  const matchedKey = keys.find(k => {
+    const normalized = k.toLowerCase().replace(/[\s\-_]/g, '');
+    return (
+      normalized === 'indexnumber' ||
+      normalized === 'indexno' ||
+      normalized === 'index' ||
+      normalized === 'studentid' ||
+      normalized === 'studentnumber' ||
+      normalized.includes('index') ||
+      normalized.includes('studentid')
+    );
+  });
+
+  if (matchedKey && item[matchedKey] !== undefined && item[matchedKey] !== null) {
+    const val = String(item[matchedKey]).trim();
+    if (val.length > 0) return val.toUpperCase();
+  }
+
+  return '';
+}
+
 /**
  * Fetch all student records stored in Firestore
  */
@@ -85,7 +166,7 @@ export async function getAllStudentsFromFirestore(): Promise<StudentResult[]> {
       if (!snap.empty) {
         const items: StudentResult[] = [];
         snap.forEach((docSnap) => {
-          items.push(docSnap.data() as StudentResult);
+          items.push(sanitizeStudentObj(docSnap.data()));
         });
         localStorage.setItem('nexus_student_results', JSON.stringify(items));
         return items;
@@ -99,13 +180,15 @@ export async function getAllStudentsFromFirestore(): Promise<StudentResult[]> {
   if (saved !== null) {
     try {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map(s => sanitizeStudentObj(s));
+      }
     } catch (err) {
       console.warn("Failed to parse saved students:", err);
     }
   }
 
-  return INITIAL_STUDENT_RESULTS;
+  return INITIAL_STUDENT_RESULTS.map(s => sanitizeStudentObj(s));
 }
 
 let isStudentsSeeding = false;
@@ -118,7 +201,12 @@ export function subscribeToStudents(callback: (students: StudentResult[]) => voi
   if (!isFirebaseConfigured) {
     const saved = localStorage.getItem('nexus_student_results');
     if (saved) {
-      try { callback(JSON.parse(saved)); } catch (e) { callback(INITIAL_STUDENT_RESULTS); }
+      try {
+        const parsed = JSON.parse(saved);
+        callback(Array.isArray(parsed) ? parsed.map(s => sanitizeStudentObj(s)) : INITIAL_STUDENT_RESULTS);
+      } catch (e) {
+        callback(INITIAL_STUDENT_RESULTS);
+      }
     } else {
       callback(INITIAL_STUDENT_RESULTS);
     }
@@ -139,7 +227,7 @@ export function subscribeToStudents(callback: (students: StudentResult[]) => voi
     if (!snap.empty) {
       const items: StudentResult[] = [];
       snap.forEach((docSnap) => {
-        items.push(docSnap.data() as StudentResult);
+        items.push(sanitizeStudentObj(docSnap.data()));
       });
       localStorage.setItem('nexus_student_results', JSON.stringify(items));
       callback(items);
@@ -148,7 +236,12 @@ export function subscribeToStudents(callback: (students: StudentResult[]) => voi
     console.warn("Firestore students onSnapshot notice:", err);
     const saved = localStorage.getItem('nexus_student_results');
     if (saved) {
-      try { callback(JSON.parse(saved)); } catch (e) { callback(INITIAL_STUDENT_RESULTS); }
+      try {
+        const parsed = JSON.parse(saved);
+        callback(Array.isArray(parsed) ? parsed.map(s => sanitizeStudentObj(s)) : INITIAL_STUDENT_RESULTS);
+      } catch (e) {
+        callback(INITIAL_STUDENT_RESULTS);
+      }
     }
   });
 
@@ -157,7 +250,6 @@ export function subscribeToStudents(callback: (students: StudentResult[]) => voi
 
 /**
  * Fetch a single student result directly by their exact document ID (Index Number)
- * E.g., doc(db, 'students', indexNumber)
  */
 export async function getStudentFromFirestore(indexNumber: string): Promise<StudentResult | null> {
   const cleanId = indexNumber.trim().toUpperCase();
@@ -171,14 +263,14 @@ export async function getStudentFromFirestore(indexNumber: string): Promise<Stud
       const docSnap = await withTimeout(getDoc(docRef), 6000);
 
       if (docSnap.exists()) {
-        return docSnap.data() as StudentResult;
+        return sanitizeStudentObj(docSnap.data());
       }
 
       if (normalizedIndex !== cleanId) {
         const docRefNorm = doc(db, 'students', encodeDocId(normalizedIndex));
         const docSnapNorm = await withTimeout(getDoc(docRefNorm), 6000);
         if (docSnapNorm.exists()) {
-          return docSnapNorm.data() as StudentResult;
+          return sanitizeStudentObj(docSnapNorm.data());
         }
       }
     } catch (err) {
@@ -191,59 +283,69 @@ export async function getStudentFromFirestore(indexNumber: string): Promise<Stud
   if (saved !== null) {
     try {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) currentList = parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) currentList = parsed.map(s => sanitizeStudentObj(s));
     } catch (e) {}
   }
 
-  return currentList.find(s => 
-    s.indexNumber.trim().toUpperCase() === cleanId ||
-    s.indexNumber.replace(/[\s/]/g, '').toUpperCase() === normalizedIndex
-  ) || null;
+  return currentList.find(s => {
+    const sId = getStudentIndexNumber(s);
+    const sNorm = sId.replace(/[\s/]/g, '');
+    return sId === cleanId || sNorm === normalizedIndex;
+  }) || null;
 }
 
 /**
  * Batch upload/merge student records to Firestore using encoded Index Number as Document ID
- * Firestore document path: /students/{encodedIndexNumber}
  */
 export async function syncStudentsToFirestore(students: StudentResult[]): Promise<{ count: number; success: boolean }> {
+  const sanitizedInput = students.map(s => sanitizeStudentObj(s));
+
   // Update local storage cache immediately
   const saved = localStorage.getItem('nexus_student_results');
   let currentList: StudentResult[] = [];
   if (saved !== null) {
     try {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed)) currentList = parsed;
+      if (Array.isArray(parsed)) currentList = parsed.map(s => sanitizeStudentObj(s));
     } catch (e) {}
   }
 
   const mergedMap = new Map<string, StudentResult>();
-  currentList.forEach(s => mergedMap.set(s.indexNumber.trim().toUpperCase(), s));
-  students.forEach(s => mergedMap.set(s.indexNumber.trim().toUpperCase(), s));
+  currentList.forEach(s => {
+    const id = getStudentIndexNumber(s);
+    if (id) mergedMap.set(id, s);
+  });
+  sanitizedInput.forEach(s => {
+    const id = getStudentIndexNumber(s);
+    if (id) mergedMap.set(id, s);
+  });
   const updatedAll = Array.from(mergedMap.values());
   localStorage.setItem('nexus_student_results', JSON.stringify(updatedAll));
 
   if (!isFirebaseConfigured) {
-    return { count: students.length, success: true };
+    return { count: sanitizedInput.length, success: true };
   }
 
   try {
     const chunkSize = 400;
-    for (let i = 0; i < students.length; i += chunkSize) {
-      const chunk = students.slice(i, i + chunkSize);
+    for (let i = 0; i < sanitizedInput.length; i += chunkSize) {
+      const chunk = sanitizedInput.slice(i, i + chunkSize);
       const batch = writeBatch(db);
       chunk.forEach((student) => {
-        const rawId = student.indexNumber.trim().toUpperCase();
-        const docId = encodeDocId(rawId);
-        const docRef = doc(db, 'students', docId);
-        const payload = sanitizeForFirestore({
-          ...student,
-          updatedAt: new Date().toISOString()
-        });
-        batch.set(docRef, payload, { merge: true });
+        const rawId = getStudentIndexNumber(student);
+        if (rawId) {
+          const docId = encodeDocId(rawId);
+          const docRef = doc(db, 'students', docId);
+          const payload = sanitizeForFirestore({
+            ...student,
+            updatedAt: new Date().toISOString()
+          });
+          batch.set(docRef, payload, { merge: true });
+        }
       });
       await withTimeout(batch.commit(), 15000);
     }
-    return { count: students.length, success: true };
+    return { count: sanitizedInput.length, success: true };
   } catch (err: any) {
     console.error("Firestore batch upload error:", err);
     throw new Error(err?.message || "Firestore upload failed");
@@ -262,10 +364,10 @@ export async function deleteStudentFromFirestore(indexNumber: string): Promise<b
   if (saved !== null) {
     try {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed)) currentList = parsed;
+      if (Array.isArray(parsed)) currentList = parsed.map(s => sanitizeStudentObj(s));
     } catch (e) {}
   }
-  const filtered = currentList.filter(s => s.indexNumber.trim().toUpperCase() !== cleanId);
+  const filtered = currentList.filter(s => getStudentIndexNumber(s) !== cleanId);
   localStorage.setItem('nexus_student_results', JSON.stringify(filtered));
 
   if (!isFirebaseConfigured) return true;
@@ -484,7 +586,7 @@ export function calculateUnebAggregatesAndDivision(subjects: SubjectResult[]): {
 
 /**
  * Parse JSON or Tab/CSV Spreadsheet Data into StudentResult objects.
- * Operates purely as a literal data viewer for the admin's uploaded spreadsheet rows and keys.
+ * Operates purely as a literal data viewer saving ONLY the literal keys and values present in the raw input string.
  */
 export function parseSpreadsheetData(rawText: string): any[] {
   const trimmed = rawText.trim();
@@ -495,14 +597,7 @@ export function parseSpreadsheetData(rawText: string): any[] {
     try {
       const parsed = JSON.parse(trimmed);
       const arr = Array.isArray(parsed) ? parsed : [parsed];
-      return arr.map((item) => {
-        const cleanObj = { ...item };
-        const indexVal = item['Index Number'] || item['Index'] || item.indexNumber || item.id || '';
-        if (indexVal && !cleanObj.indexNumber) cleanObj.indexNumber = String(indexVal).toUpperCase().trim();
-        const nameVal = item['Name'] || item['Student Name'] || item.studentName || item.name || '';
-        if (nameVal && !cleanObj.studentName) cleanObj.studentName = String(nameVal).toUpperCase().trim();
-        return cleanObj;
-      });
+      return arr.map((item) => sanitizeStudentObj(item));
     } catch (e) {
       // Continue to CSV/TSV parsing
     }
@@ -519,7 +614,7 @@ export function parseSpreadsheetData(rawText: string): any[] {
   const rawRows = lines.map(line => line.split(delimiter).map(c => c.replace(/^"|"$/g, '').trim()));
   if (rawRows.length === 0) return [];
 
-  const rawHeaders = rawRows[0];
+  const rawHeaders = rawRows[0].map(h => h.trim()).filter(h => h.length > 0);
   const dataRows = rawRows.slice(1);
 
   const results: any[] = [];
@@ -529,29 +624,11 @@ export function parseSpreadsheetData(rawText: string): any[] {
 
     const rowObj: Record<string, any> = {};
     rawHeaders.forEach((header, idx) => {
-      const hTrim = header.trim();
-      if (hTrim) {
-        rowObj[hTrim] = cols[idx] !== undefined ? cols[idx] : '';
+      const lk = header.toLowerCase().trim();
+      if (!FORBIDDEN_FIELDS_LOWER.has(lk)) {
+        rowObj[header] = cols[idx] !== undefined ? cols[idx] : '';
       }
     });
-
-    // Extract index number and name for helper lookup properties
-    const indexKey = Object.keys(rowObj).find(k => {
-      const lk = k.toLowerCase();
-      return lk.includes('index') || lk.includes('id') || lk.includes('number');
-    });
-    const rawIndex = indexKey ? rowObj[indexKey] : (cols[0] || '');
-    if (!rawIndex || String(rawIndex).trim().length === 0) continue;
-
-    const cleanIndex = String(rawIndex).toUpperCase().trim();
-    rowObj.indexNumber = cleanIndex;
-
-    const nameKey = Object.keys(rowObj).find(k => {
-      const lk = k.toLowerCase();
-      return lk.includes('name') || lk.includes('student');
-    });
-    const rawName = nameKey ? rowObj[nameKey] : (cols[1] || '');
-    rowObj.studentName = String(rawName).trim();
 
     results.push(rowObj);
   }
@@ -561,89 +638,14 @@ export function parseSpreadsheetData(rawText: string): any[] {
 
 /**
  * Parse a raw CSV string directly in the frontend using standard JavaScript (.split('\n'))
- * Dynamic column detection loop reads headers to match "index number", "index", "student id", or "unique id"
- * Scans rows for student's typed identifier.
+ * Scans rows for student's typed identifier and returns literal record without injected metrics.
  */
 export function parseAndSearchCSV(rawCsvText: string, typedIndexNumber: string): StudentResult | null {
   const targetId = typedIndexNumber.trim().toUpperCase();
   if (!targetId || !rawCsvText.trim()) return null;
 
-  // Split lines using standard JavaScript string splitting
-  const lines = rawCsvText.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
-  if (lines.length === 0) return null;
-
-  // Detect tab or comma delimiter
-  const firstLine = lines[0];
-  const delimiter = firstLine.includes('\t') ? '\t' : ',';
-
-  // Read first row (headers)
-  const headers = firstLine.split(delimiter).map(h => h.replace(/^"|"$/g, '').trim().toLowerCase());
-
-  // Dynamic column detection loop for index number / student id / unique id
-  let indexColIdx = headers.findIndex(h => 
-    h === 'index number' || 
-    h === 'index' || 
-    h === 'student id' || 
-    h === 'unique id' || 
-    h.includes('index') || 
-    h.includes('student id') ||
-    h.includes('unique id')
-  );
-
-  if (indexColIdx === -1) indexColIdx = 0; // Default to first column if no explicit header match
-
-  // Header column index detection for other fields
-  const nameColIdx = headers.findIndex(h => h.includes('name') || h.includes('student'));
-  const levelColIdx = headers.findIndex(h => h.includes('level'));
-  const yearColIdx = headers.findIndex(h => h.includes('year'));
-  const genderColIdx = headers.findIndex(h => h.includes('gender') || h.includes('sex'));
-  const streamColIdx = headers.findIndex(h => h.includes('stream') || h.includes('combination'));
-  const aggregatesColIdx = headers.findIndex(h => h.includes('aggregate') || h.includes('point'));
-  const divisionColIdx = headers.findIndex(h => h.includes('division') || h.includes('class'));
-  const remarkColIdx = headers.findIndex(h => h.includes('remark') || h.includes('comment'));
-
-  // Scan the spreadsheet rows to find exact row matching student's typed identifier
-  for (let i = 1; i < lines.length; i++) {
-    const cols = lines[i].split(delimiter).map(c => c.replace(/^"|"$/g, '').trim());
-    if (!cols || cols.length === 0) continue;
-
-    const rowId = (cols[indexColIdx] || '').toUpperCase();
-    if (rowId === targetId) {
-      // Exact identifier match found!
-      const studentName = (cols[nameColIdx] || `STUDENT ${i}`).toUpperCase();
-      const levelVal = levelColIdx !== -1 && cols[levelColIdx] ? cols[levelColIdx].toUpperCase() : '';
-      const level: 'UCE' | 'UACE' = levelVal.includes('UACE') || rowId.includes('A/') ? 'UACE' : 'UCE';
-      const examYear = yearColIdx !== -1 && cols[yearColIdx] ? (parseInt(cols[yearColIdx]) || 2025) : 2025;
-      const gender: 'M' | 'F' = genderColIdx !== -1 && cols[genderColIdx] && cols[genderColIdx].toUpperCase() === 'F' ? 'F' : 'M';
-      const combinationOrStream = streamColIdx !== -1 && cols[streamColIdx] ? cols[streamColIdx] : (level === 'UCE' ? 'Senior 4 Science Stream A' : 'PCM/ICT');
-      const aggregatesOrPoints = aggregatesColIdx !== -1 && cols[aggregatesColIdx] ? cols[aggregatesColIdx] : (level === 'UCE' ? '10 Aggregates' : '18 Points');
-      const divisionOrClass = divisionColIdx !== -1 && cols[divisionColIdx] ? cols[divisionColIdx] : 'Division 1';
-      const headteacherRemark = remarkColIdx !== -1 && cols[remarkColIdx] ? cols[remarkColIdx] : 'Outstanding candidate performance recorded.';
-
-      return {
-        indexNumber: rowId,
-        studentName,
-        level,
-        examYear,
-        gender,
-        combinationOrStream,
-        aggregatesOrPoints,
-        divisionOrClass,
-        headteacherRemark,
-        verifiedStatus: true,
-        subjects: [
-          { code: '535', name: 'PHYSICS', grade: 'D1', scoreName: 'Distinction 1' },
-          { code: '545', name: 'CHEMISTRY', grade: 'D1', scoreName: 'Distinction 1' },
-          { code: '553', name: 'BIOLOGY', grade: 'D1', scoreName: 'Distinction 1' },
-          { code: '456', name: 'MATHEMATICS', grade: 'D1', scoreName: 'Distinction 1' },
-          { code: '112', name: 'ENGLISH LANGUAGE', grade: 'D2', scoreName: 'Distinction 2' },
-          { code: '840', name: 'ICT & COMPUTER STUDIES', grade: 'D1', scoreName: 'Distinction 1' }
-        ]
-      };
-    }
-  }
-
-  return null;
+  const records = parseSpreadsheetData(rawCsvText);
+  return records.find(r => getStudentIndexNumber(r) === targetId) || null;
 }
 
 /**
@@ -797,14 +799,13 @@ export async function getEventsFromFirestore(): Promise<EventItem[]> {
   if (isFirebaseConfigured) {
     try {
       const snap = await withTimeout(getDocs(collection(db, 'events')));
-      if (!snap.empty) {
-        const items: EventItem[] = [];
-        snap.forEach((docSnap) => {
-          items.push(docSnap.data() as EventItem);
-        });
-        localStorage.setItem('nexus_events_items', JSON.stringify(items));
-        return items;
-      }
+      const items: EventItem[] = [];
+      snap.forEach((docSnap) => {
+        items.push(docSnap.data() as EventItem);
+      });
+      localStorage.setItem('nexus_events_items', JSON.stringify(items));
+      localStorage.setItem('nexus_events_initialized', 'true');
+      return items;
     } catch (err) {
       console.warn("Firestore events query notice:", err);
     }
@@ -819,7 +820,12 @@ export async function getEventsFromFirestore(): Promise<EventItem[]> {
     }
   }
 
+  if (localStorage.getItem('nexus_events_initialized') === 'true') {
+    return [];
+  }
+
   localStorage.setItem('nexus_events_items', JSON.stringify(UPCOMING_EVENTS));
+  localStorage.setItem('nexus_events_initialized', 'true');
   return UPCOMING_EVENTS;
 }
 
@@ -832,8 +838,10 @@ let isEventsSeeding = false;
 export function subscribeToEvents(callback: (events: EventItem[]) => void): () => void {
   if (!isFirebaseConfigured) {
     const saved = localStorage.getItem('nexus_events_items');
-    if (saved) {
-      try { callback(JSON.parse(saved)); } catch (e) { callback(UPCOMING_EVENTS); }
+    if (saved !== null) {
+      try { callback(JSON.parse(saved)); } catch (e) { callback([]); }
+    } else if (localStorage.getItem('nexus_events_initialized') === 'true') {
+      callback([]);
     } else {
       callback(UPCOMING_EVENTS);
     }
@@ -841,31 +849,44 @@ export function subscribeToEvents(callback: (events: EventItem[]) => void): () =
   }
 
   const unsubscribe = onSnapshot(collection(db, 'events'), async (snap) => {
-    if (snap.empty && !isEventsSeeding) {
-      isEventsSeeding = true;
-      try {
-        for (const evt of UPCOMING_EVENTS) {
-          await setDoc(doc(db, 'events', evt.id), { ...evt, createdAt: new Date().toISOString() });
+    const isInitialized = localStorage.getItem('nexus_events_initialized') === 'true';
+
+    if (snap.empty) {
+      if (!isInitialized && !isEventsSeeding) {
+        isEventsSeeding = true;
+        localStorage.setItem('nexus_events_initialized', 'true');
+        try {
+          for (const evt of UPCOMING_EVENTS) {
+            await setDoc(doc(db, 'events', evt.id), { ...evt, createdAt: new Date().toISOString() });
+          }
+        } catch (e) {
+          console.warn("Error seeding events:", e);
         }
-      } catch (e) {
-        console.warn("Error seeding events:", e);
+        return;
       }
+
+      localStorage.setItem('nexus_events_items', JSON.stringify([]));
+      localStorage.setItem('nexus_events_initialized', 'true');
+      callback([]);
       return;
     }
 
-    if (!snap.empty) {
-      const items: EventItem[] = [];
-      snap.forEach((docSnap) => {
-        items.push(docSnap.data() as EventItem);
-      });
-      localStorage.setItem('nexus_events_items', JSON.stringify(items));
-      callback(items);
-    }
+    const items: EventItem[] = [];
+    snap.forEach((docSnap) => {
+      items.push(docSnap.data() as EventItem);
+    });
+    localStorage.setItem('nexus_events_items', JSON.stringify(items));
+    localStorage.setItem('nexus_events_initialized', 'true');
+    callback(items);
   }, (err) => {
     console.warn("Firestore events onSnapshot notice:", err);
     const saved = localStorage.getItem('nexus_events_items');
-    if (saved) {
-      try { callback(JSON.parse(saved)); } catch (e) { callback(UPCOMING_EVENTS); }
+    if (saved !== null) {
+      try { callback(JSON.parse(saved)); } catch (e) { callback([]); }
+    } else if (localStorage.getItem('nexus_events_initialized') === 'true') {
+      callback([]);
+    } else {
+      callback(UPCOMING_EVENTS);
     }
   });
 
@@ -876,6 +897,7 @@ export async function addEventToFirestore(item: EventItem): Promise<boolean> {
   const current = await getEventsFromFirestore();
   const updated = [item, ...current.filter(i => i.id !== item.id)];
   localStorage.setItem('nexus_events_items', JSON.stringify(updated));
+  localStorage.setItem('nexus_events_initialized', 'true');
 
   if (isFirebaseConfigured) {
     try {
@@ -893,6 +915,7 @@ export async function deleteEventFromFirestore(id: string): Promise<boolean> {
   const current = await getEventsFromFirestore();
   const updated = current.filter(i => i.id !== id);
   localStorage.setItem('nexus_events_items', JSON.stringify(updated));
+  localStorage.setItem('nexus_events_initialized', 'true');
 
   if (isFirebaseConfigured) {
     try {
@@ -913,14 +936,12 @@ export async function getNewsFromFirestore(): Promise<NewsItem[]> {
   if (isFirebaseConfigured) {
     try {
       const snap = await withTimeout(getDocs(collection(db, 'news')));
-      if (!snap.empty) {
-        const items: NewsItem[] = [];
-        snap.forEach((docSnap) => {
-          items.push(docSnap.data() as NewsItem);
-        });
-        localStorage.setItem('nexus_news_items', JSON.stringify(items));
-        return items;
-      }
+      const items: NewsItem[] = [];
+      snap.forEach((docSnap) => {
+        items.push(docSnap.data() as NewsItem);
+      });
+      localStorage.setItem('nexus_news_items', JSON.stringify(items));
+      return items;
     } catch (err) {
       console.warn("Firestore news query notice:", err);
     }
@@ -935,11 +956,46 @@ export async function getNewsFromFirestore(): Promise<NewsItem[]> {
     }
   }
 
-  localStorage.setItem('nexus_news_items', JSON.stringify(NEWS_ARTICLES));
-  return NEWS_ARTICLES;
+  localStorage.setItem('nexus_news_items', JSON.stringify([]));
+  return [];
+}
+
+export function subscribeToNews(callback: (news: NewsItem[]) => void): () => void {
+  if (!isFirebaseConfigured) {
+    const saved = localStorage.getItem('nexus_news_items');
+    if (saved) {
+      try { callback(JSON.parse(saved)); } catch (e) { callback([]); }
+    } else {
+      callback([]);
+    }
+    return () => {};
+  }
+
+  const unsubscribe = onSnapshot(collection(db, 'news'), (snap) => {
+    const items: NewsItem[] = [];
+    snap.forEach((docSnap) => {
+      items.push(docSnap.data() as NewsItem);
+    });
+    localStorage.setItem('nexus_news_items', JSON.stringify(items));
+    callback(items);
+  }, (err) => {
+    console.warn("Firestore news onSnapshot notice:", err);
+    const saved = localStorage.getItem('nexus_news_items');
+    if (saved) {
+      try { callback(JSON.parse(saved)); } catch (e) { callback([]); }
+    } else {
+      callback([]);
+    }
+  });
+
+  return unsubscribe;
 }
 
 export async function addNewsToFirestore(item: NewsItem): Promise<boolean> {
+  const current = await getNewsFromFirestore();
+  const updated = [item, ...current.filter(i => i.id !== item.id)];
+  localStorage.setItem('nexus_news_items', JSON.stringify(updated));
+
   if (isFirebaseConfigured) {
     try {
       const docRef = doc(db, 'news', item.id);
@@ -949,13 +1005,14 @@ export async function addNewsToFirestore(item: NewsItem): Promise<boolean> {
     }
   }
 
-  const current = await getNewsFromFirestore();
-  const updated = [item, ...current.filter(i => i.id !== item.id)];
-  localStorage.setItem('nexus_news_items', JSON.stringify(updated));
   return true;
 }
 
 export async function deleteNewsFromFirestore(id: string): Promise<boolean> {
+  const current = await getNewsFromFirestore();
+  const updated = current.filter(i => i.id !== id);
+  localStorage.setItem('nexus_news_items', JSON.stringify(updated));
+
   if (isFirebaseConfigured) {
     try {
       await withTimeout(deleteDoc(doc(db, 'news', id)));
@@ -964,9 +1021,6 @@ export async function deleteNewsFromFirestore(id: string): Promise<boolean> {
     }
   }
 
-  const current = await getNewsFromFirestore();
-  const updated = current.filter(i => i.id !== id);
-  localStorage.setItem('nexus_news_items', JSON.stringify(updated));
   return true;
 }
 

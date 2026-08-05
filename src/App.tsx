@@ -7,6 +7,7 @@ import { HeadTeacherMessageSection } from './components/HeadTeacherMessageSectio
 import { AcademicExcellenceSection } from './components/AcademicExcellenceSection';
 import { EventsSection } from './components/EventsSection';
 import { StudentLifeSection } from './components/StudentLifeSection';
+import { NewsSection } from './components/NewsSection';
 import { ProgramsSection } from './components/ProgramsSection';
 import { AdmissionsSection } from './components/AdmissionsSection';
 import { FaqSection } from './components/FaqSection';
@@ -110,6 +111,9 @@ export default function App() {
 
             {/* Vibrant Campus Gallery Section */}
             <StudentLifeSection />
+
+            {/* News & Updates Section */}
+            <NewsSection />
 
             {/* Academic Programs & Syllabus */}
             <ProgramsSection
