@@ -8,7 +8,6 @@ import {
   Calendar, 
   FileCheck, 
   GraduationCap, 
-  Sparkles, 
   Award, 
   PhoneCall, 
   Compass,
@@ -60,7 +59,7 @@ const PUBLIC_WEBSITE_SECTIONS: SectionSearchItem[] = [
     subtitle: 'Learn about Nexus Academy vision, STEM focus, & mission',
     category: 'About Us',
     keywords: ['about', 'about us', 'vision', 'mission', 'why nexus', 'choose', 'values', 'history', 'overview'],
-    icon: Sparkles,
+    icon: Award,
     action: 'section'
   },
   {

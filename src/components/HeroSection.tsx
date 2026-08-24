@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { HERO_SLIDES } from '../data/schoolData';
-import { Sparkles, Compass, Send, Award, GraduationCap } from 'lucide-react';
+import { Compass, Send, Award, GraduationCap } from 'lucide-react';
 
 interface HeroSectionProps {
   onOpenApply: () => void;

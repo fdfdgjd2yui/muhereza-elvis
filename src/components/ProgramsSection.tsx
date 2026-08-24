@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { PROGRAMS } from '../data/schoolData';
 import { Program } from '../types';
-import { BookMarked, GraduationCap, ArrowRight, CheckCircle2, BookOpen, Layers, Sparkles, Send } from 'lucide-react';
+import { BookMarked, GraduationCap, ArrowRight, CheckCircle2, BookOpen, Layers, Send } from 'lucide-react';
 
 interface ProgramsSectionProps {
   onOpenApply: () => void;

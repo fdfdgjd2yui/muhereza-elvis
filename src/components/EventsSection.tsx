@@ -8,7 +8,7 @@ import {
   Tag, 
   Search, 
   X, 
-  Sparkles, 
+  CheckCircle2, 
   Bell, 
   Share2,
   ChevronRight,
@@ -389,7 +389,7 @@ export const EventsSection: React.FC = () => {
 
                   {reminderConfirmed && (
                     <div className="p-2.5 rounded-xl bg-emerald-100 border border-emerald-300 text-emerald-900 text-xs font-bold flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                       <span>Reminder scheduled! Event file downloaded for your phone calendar.</span>
                     </div>
                   )}

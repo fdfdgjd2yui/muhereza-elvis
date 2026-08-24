@@ -35,7 +35,6 @@ import {
   Search,
   Image as ImageIcon,
   Upload,
-  Sparkles,
   MapPin,
   Clock,
   Tag,
@@ -67,6 +66,8 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
 
   // Search query for students table
   const [searchQuery, setSearchQuery] = useState('');
+  const [studentExamFilter, setStudentExamFilter] = useState<'all' | 'uneb' | 'mock'>('all');
+  const [studentLevelFilter, setStudentLevelFilter] = useState<'all' | 'o-level' | 'a-level'>('all');
 
   // Excel/CSV paste state
   const [pastedData, setPastedData] = useState('');
@@ -379,8 +380,24 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
     }
   };
 
-  // Flexible search filter across all record fields
+  // Flexible search and level/exam filter across all record fields
   const filteredStudents = studentResults.filter(s => {
+    // Exam Type filter (UNEB vs Mock)
+    if (studentExamFilter !== 'all') {
+      const typeStr = JSON.stringify(s).toLowerCase();
+      const isMock = typeStr.includes('mock');
+      if (studentExamFilter === 'mock' && !isMock) return false;
+      if (studentExamFilter === 'uneb' && isMock) return false;
+    }
+
+    // Level filter (O-Level vs A-Level)
+    if (studentLevelFilter !== 'all') {
+      const lvlStr = JSON.stringify(s).toLowerCase();
+      const isALevel = lvlStr.includes('a-level') || lvlStr.includes('uace') || lvlStr.includes('combination') || lvlStr.includes('total points');
+      if (studentLevelFilter === 'a-level' && !isALevel) return false;
+      if (studentLevelFilter === 'o-level' && isALevel) return false;
+    }
+
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     return Object.values(s).some(val => {
@@ -1009,6 +1026,57 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                     />
                   </div>
 
+                  {/* Level & Exam Type Filters */}
+                  <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                    <div className="inline-flex rounded-lg border border-slate-200 bg-slate-100 p-0.5">
+                      <button
+                        type="button"
+                        onClick={() => setStudentExamFilter('all')}
+                        className={`px-2 py-1 rounded text-[11px] font-bold ${studentExamFilter === 'all' ? 'bg-[#0B1A30] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+                      >
+                        All Exams
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setStudentExamFilter('uneb')}
+                        className={`px-2 py-1 rounded text-[11px] font-bold ${studentExamFilter === 'uneb' ? 'bg-[#0B1A30] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+                      >
+                        UNEB
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setStudentExamFilter('mock')}
+                        className={`px-2 py-1 rounded text-[11px] font-bold ${studentExamFilter === 'mock' ? 'bg-[#0B1A30] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+                      >
+                        Mocks
+                      </button>
+                    </div>
+
+                    <div className="inline-flex rounded-lg border border-slate-200 bg-slate-100 p-0.5">
+                      <button
+                        type="button"
+                        onClick={() => setStudentLevelFilter('all')}
+                        className={`px-2 py-1 rounded text-[11px] font-bold ${studentLevelFilter === 'all' ? 'bg-sky-700 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+                      >
+                        All Levels
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setStudentLevelFilter('o-level')}
+                        className={`px-2 py-1 rounded text-[11px] font-bold ${studentLevelFilter === 'o-level' ? 'bg-sky-700 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+                      >
+                        O-Level (UCE)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setStudentLevelFilter('a-level')}
+                        className={`px-2 py-1 rounded text-[11px] font-bold ${studentLevelFilter === 'a-level' ? 'bg-sky-700 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+                      >
+                        A-Level (UACE)
+                      </button>
+                    </div>
+                  </div>
+
                   {isConfirmingClearAll ? (
                     <div className="flex items-center gap-1.5 bg-red-100 border border-red-300 p-1 rounded-xl">
                       <span className="text-[11px] font-bold text-red-900 px-1">Clear ALL student records?</span>
@@ -1034,7 +1102,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                       className="px-3.5 py-2 rounded-xl bg-red-50 text-red-700 border border-red-200 text-xs font-bold hover:bg-red-100 transition-colors flex items-center gap-1.5"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
-                      <span>Clear All Student Records</span>
+                      <span>Clear All Records</span>
                     </button>
                   )}
                 </div>

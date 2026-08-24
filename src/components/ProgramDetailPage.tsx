@@ -6,7 +6,7 @@ import {
   BookMarked, 
   CheckCircle2, 
   Clock, 
-  Sparkles, 
+  BookOpen, 
   Award, 
   ChevronRight,
   Send
@@ -109,7 +109,7 @@ export const ProgramDetailPage: React.FC<ProgramDetailPageProps> = ({
             <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-md space-y-6">
               <div className="flex items-center justify-between border-b border-slate-200 pb-4">
                 <h2 className="text-xl font-black text-[#0B1A30] flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-sky-700" />
+                  <BookOpen className="w-5 h-5 text-sky-700" />
                   <span>Official Subject Directory & Combinations</span>
                 </h2>
                 <span className="text-xs text-sky-800 font-bold bg-sky-50 px-3 py-1 rounded-full border border-sky-200">

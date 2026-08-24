@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { GraduationCap, Award, BookOpen, Rocket, CheckCircle2, Globe, Shield, Sparkles } from 'lucide-react';
+import { GraduationCap, Award, BookOpen, Rocket, CheckCircle2, Globe, Shield } from 'lucide-react';
 
 const ACADEMIC_STAGES = [
   {
@@ -210,7 +210,7 @@ export const AcademicExcellenceSection: React.FC = () => {
 
               {/* Class Motivation Banner */}
               <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-950 text-xs italic flex items-start gap-3">
-                <Sparkles className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                <Award className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
                 <div>
                   <span className="font-bold text-amber-900 not-italic block mb-0.5 uppercase tracking-wider text-[10px]">
                     Class Motivation & Guidance:

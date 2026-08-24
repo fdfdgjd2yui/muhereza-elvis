@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { GalleryItem } from '../types';
 import { subscribeToGallery } from '../lib/firebase';
-import { Maximize2, X, Camera, Image as ImageIcon, Sparkles } from 'lucide-react';
+import { Maximize2, X, Camera, Image as ImageIcon } from 'lucide-react';
 
 export const StudentLifeSection: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<string>('all');

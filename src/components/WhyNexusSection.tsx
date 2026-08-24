@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { WHY_NEXUS_FEATURES } from '../data/schoolData';
-import { Sparkles, Monitor, FlaskConical, BookOpen, Trophy, HeartHandshake, CheckCircle2, X, ArrowRight } from 'lucide-react';
+import { Award, Monitor, FlaskConical, BookOpen, Trophy, HeartHandshake, CheckCircle2, X, ArrowRight } from 'lucide-react';
 
 const iconMap: Record<string, React.ReactNode> = {
-  Sparkles: <Sparkles className="w-5 h-5 text-sky-400" />,
+  Award: <Award className="w-5 h-5 text-sky-400" />,
   Monitor: <Monitor className="w-5 h-5 text-sky-400" />,
   FlaskConical: <FlaskConical className="w-5 h-5 text-cyan-400" />,
   BookOpen: <BookOpen className="w-5 h-5 text-blue-400" />,
@@ -59,7 +59,7 @@ export const WhyNexusSection: React.FC = () => {
         
         <div className="text-center max-w-3xl mx-auto mb-16 space-y-3">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-100 border border-sky-300 text-sky-900 text-xs font-bold uppercase tracking-widest">
-            <Sparkles className="w-3.5 h-3.5 text-sky-700" />
+            <Award className="w-3.5 h-3.5 text-sky-700" />
             Educational Distinction
           </div>
           <h2 className="text-3xl sm:text-5xl font-extrabold text-[#0B1A30] heading-font">
@@ -79,7 +79,7 @@ export const WhyNexusSection: React.FC = () => {
                 <span className="px-3 py-1 rounded-full bg-sky-100 border border-sky-300 text-[10px] font-bold text-sky-900 uppercase tracking-widest">
                   Nexus Campus
                 </span>
-                <Sparkles className="w-6 h-6 text-sky-600" />
+                <Award className="w-6 h-6 text-sky-600" />
               </div>
 
               <div className="my-auto text-center space-y-3 py-6">
