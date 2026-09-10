@@ -2,8 +2,8 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore, doc, getDoc, setDoc, deleteDoc, writeBatch, collection, getDocs, onSnapshot } from 'firebase/firestore';
 import firebaseConfigJson from '../../firebase-applet-config.json';
-import { StudentResult, SubjectResult, GalleryItem, EventItem, NewsItem } from '../types';
-import { UPCOMING_EVENTS, INITIAL_GALLERY_ITEMS, NEWS_ARTICLES, INITIAL_STUDENT_RESULTS } from '../data/schoolData';
+import { StudentResult, SubjectResult, GalleryItem, EventItem, NewsItem, FacilityItem } from '../types';
+import { UPCOMING_EVENTS, INITIAL_GALLERY_ITEMS, NEWS_ARTICLES, INITIAL_STUDENT_RESULTS, INITIAL_FACILITY_ITEMS } from '../data/schoolData';
 
 const firebaseConfig = {
   apiKey: firebaseConfigJson?.apiKey || import.meta.env.VITE_FIREBASE_API_KEY || "demo-api-key",
@@ -1022,5 +1022,165 @@ export async function deleteNewsFromFirestore(id: string): Promise<boolean> {
   }
 
   return true;
+}
+
+// ==========================================
+// FIRESTORE CAMPUS FACILITIES HELPERS
+// ==========================================
+
+export async function getFacilitiesFromFirestore(): Promise<FacilityItem[]> {
+  const saved = localStorage.getItem('nexus_facility_items');
+  if (saved !== null) {
+    try {
+      const parsed: FacilityItem[] = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    } catch (err) {
+      console.warn("Failed to parse saved facilities:", err);
+    }
+  }
+
+  if (isFirebaseConfigured) {
+    try {
+      const snap = await withTimeout(getDocs(collection(db, 'facilities')));
+      if (!snap.empty) {
+        const items: FacilityItem[] = [];
+        snap.forEach((docSnap) => {
+          items.push(docSnap.data() as FacilityItem);
+        });
+        if (items.length > 0) {
+          const sorted = [...items].sort((a, b) => Number(a.id) - Number(b.id));
+          localStorage.setItem('nexus_facility_items', JSON.stringify(sorted));
+          return sorted;
+        }
+      }
+    } catch (err) {
+      console.warn("Firestore facilities query notice:", err);
+    }
+  }
+
+  localStorage.setItem('nexus_facility_items', JSON.stringify(INITIAL_FACILITY_ITEMS));
+  return INITIAL_FACILITY_ITEMS;
+}
+
+export function subscribeToFacilities(callback: (facilities: FacilityItem[]) => void): () => void {
+  if (!isFirebaseConfigured) {
+    const saved = localStorage.getItem('nexus_facility_items');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          callback(parsed);
+        } else {
+          callback(INITIAL_FACILITY_ITEMS);
+        }
+      } catch (e) {
+        callback(INITIAL_FACILITY_ITEMS);
+      }
+    } else {
+      callback(INITIAL_FACILITY_ITEMS);
+    }
+    return () => {};
+  }
+
+  const unsubscribe = onSnapshot(collection(db, 'facilities'), (snap) => {
+    if (!snap.empty) {
+      const items: FacilityItem[] = [];
+      snap.forEach((docSnap) => {
+        items.push(docSnap.data() as FacilityItem);
+      });
+      const sorted = [...items].sort((a, b) => Number(a.id) - Number(b.id));
+      localStorage.setItem('nexus_facility_items', JSON.stringify(sorted));
+      callback(sorted);
+    } else {
+      const saved = localStorage.getItem('nexus_facility_items');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            callback(parsed);
+          } else {
+            callback(INITIAL_FACILITY_ITEMS);
+          }
+        } catch (e) {
+          callback(INITIAL_FACILITY_ITEMS);
+        }
+      } else {
+        localStorage.setItem('nexus_facility_items', JSON.stringify(INITIAL_FACILITY_ITEMS));
+        callback(INITIAL_FACILITY_ITEMS);
+      }
+    }
+  }, (err) => {
+    console.warn("Firestore facilities onSnapshot notice:", err);
+    const saved = localStorage.getItem('nexus_facility_items');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          callback(parsed);
+        } else {
+          callback(INITIAL_FACILITY_ITEMS);
+        }
+      } catch (e) {
+        callback(INITIAL_FACILITY_ITEMS);
+      }
+    } else {
+      callback(INITIAL_FACILITY_ITEMS);
+    }
+  });
+
+  return unsubscribe;
+}
+
+export async function saveFacilitiesToFirestore(facilities: FacilityItem[]): Promise<boolean> {
+  localStorage.setItem('nexus_facility_items', JSON.stringify(facilities));
+
+  if (isFirebaseConfigured) {
+    try {
+      const batch = writeBatch(db);
+      for (const item of facilities) {
+        const docRef = doc(db, 'facilities', item.id);
+        batch.set(docRef, sanitizeForFirestore({ ...item, updatedAt: new Date().toISOString() }), { merge: true });
+      }
+      await withTimeout(batch.commit());
+    } catch (err) {
+      console.warn("Firestore facilities batch save notice:", err);
+    }
+  }
+
+  return true;
+}
+
+export async function updateFacilityInFirestore(updatedFacility: FacilityItem): Promise<boolean> {
+  const current = await getFacilitiesFromFirestore();
+  const updated = current.map(f => f.id === updatedFacility.id ? updatedFacility : f);
+  localStorage.setItem('nexus_facility_items', JSON.stringify(updated));
+
+  if (isFirebaseConfigured) {
+    try {
+      const docRef = doc(db, 'facilities', updatedFacility.id);
+      await withTimeout(setDoc(docRef, sanitizeForFirestore({ ...updatedFacility, updatedAt: new Date().toISOString() }), { merge: true }));
+    } catch (err) {
+      console.warn("Firestore facility update notice:", err);
+    }
+  }
+
+  return true;
+}
+
+export async function resetFacilitiesToDefault(): Promise<FacilityItem[]> {
+  localStorage.setItem('nexus_facility_items', JSON.stringify(INITIAL_FACILITY_ITEMS));
+  if (isFirebaseConfigured) {
+    try {
+      const batch = writeBatch(db);
+      for (const item of INITIAL_FACILITY_ITEMS) {
+        const docRef = doc(db, 'facilities', item.id);
+        batch.set(docRef, sanitizeForFirestore(item), { merge: true });
+      }
+      await withTimeout(batch.commit());
+    } catch (err) {
+      console.warn("Firestore reset facilities notice:", err);
+    }
+  }
+  return INITIAL_FACILITY_ITEMS;
 }
 

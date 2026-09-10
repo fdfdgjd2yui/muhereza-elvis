@@ -29,6 +29,21 @@ export interface Teacher {
   bio: string;
 }
 
+export interface FacilityImage {
+  id: string;
+  url: string;
+  caption?: string;
+  isMain?: boolean;
+}
+
+export interface FacilityItem {
+  id: string;
+  title: string;
+  category?: string;
+  subtitle?: string;
+  images: FacilityImage[];
+}
+
 export interface GalleryItem {
   id: string;
   title: string;

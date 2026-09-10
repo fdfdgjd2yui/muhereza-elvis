@@ -2,6 +2,8 @@ import {
   Metric,
   Program,
   Teacher,
+  FacilityItem,
+  FacilityImage,
   GalleryItem,
   Testimonial,
   AdmissionStep,
@@ -103,6 +105,219 @@ export const WHY_NEXUS_FEATURES = [
     title: 'Holistic Boarding & Leadership',
     description: 'Clean dormitories, 24/7 security & house wardens, nutritious balanced meals, Scripture Union, and Student Council leadership.',
     icon: 'HeartHandshake'
+  }
+];
+
+export const INITIAL_FACILITY_ITEMS: FacilityItem[] = [
+  {
+    id: '1',
+    title: 'Academic Rigor & UNEB Prep',
+    category: 'Academics',
+    subtitle: 'Senior Revision Center, Target Assessment Rooms & Candidate Examination Coaching Hub',
+    images: [
+      {
+        id: 'rig-1',
+        url: 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?q=80&w=1200&auto=format&fit=crop',
+        caption: 'Central Academic Target & UNEB Candidate Revision Hall',
+        isMain: true
+      },
+      {
+        id: 'rig-2',
+        url: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?q=80&w=800&auto=format&fit=crop',
+        caption: 'Candidate Revision Clinic & Past Paper Analysis Room',
+        isMain: false
+      },
+      {
+        id: 'rig-3',
+        url: 'https://images.unsplash.com/photo-1577495508048-b635879837f1?q=80&w=800&auto=format&fit=crop',
+        caption: 'Department Consultation & Teacher-Student Mentorship Wing',
+        isMain: false
+      },
+      {
+        id: 'rig-4',
+        url: 'https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?q=80&w=800&auto=format&fit=crop',
+        caption: 'Quiet Study & Candidate Focus Desks',
+        isMain: false
+      }
+    ]
+  },
+  {
+    id: '2',
+    title: 'Spacious Classrooms',
+    category: 'Classrooms',
+    subtitle: 'Well-Ventilated, Daylit Learning Spaces Equipped with Digital Multimedia Tools',
+    images: [
+      {
+        id: 'cls-1',
+        url: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?q=80&w=1200&auto=format&fit=crop',
+        caption: 'Bright Daylit Secondary Classroom with Ergonomic Single Desks',
+        isMain: true
+      },
+      {
+        id: 'cls-2',
+        url: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?q=80&w=800&auto=format&fit=crop',
+        caption: 'Interactive Digital Whiteboard & Smart Projector Setup',
+        isMain: false
+      },
+      {
+        id: 'cls-3',
+        url: 'https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?q=80&w=800&auto=format&fit=crop',
+        caption: 'Collaborative Group Discussion & Seminar Floor Layout',
+        isMain: false
+      },
+      {
+        id: 'cls-4',
+        url: 'https://images.unsplash.com/photo-1498243691581-b145c3f54a5a?q=80&w=800&auto=format&fit=crop',
+        caption: 'Orderly Examination Hall Arrangement for UNEB Mocks',
+        isMain: false
+      }
+    ]
+  },
+  {
+    id: '3',
+    title: 'Science Laboratories',
+    category: 'Science & STEM',
+    subtitle: 'Fully Equipped Physics, Chemistry & Biology UNEB Practical Laboratories',
+    images: [
+      {
+        id: 'sci-1',
+        url: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?q=80&w=1200&auto=format&fit=crop',
+        caption: 'Main Chemistry Practical Laboratory Bench Station',
+        isMain: true
+      },
+      {
+        id: 'sci-2',
+        url: 'https://images.unsplash.com/photo-1579154204601-01588f351e67?q=80&w=800&auto=format&fit=crop',
+        caption: 'High-Precision Biological Microscopy & Specimen Station',
+        isMain: false
+      },
+      {
+        id: 'sci-3',
+        url: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?q=80&w=800&auto=format&fit=crop',
+        caption: 'Chemistry Reagents & Titration Apparatus Station',
+        isMain: false
+      },
+      {
+        id: 'sci-4',
+        url: 'https://images.unsplash.com/photo-1507668077129-56e32842fceb?q=80&w=800&auto=format&fit=crop',
+        caption: 'Physics Mechanics, Electricity & Optics Experimental Kit',
+        isMain: false
+      },
+      {
+        id: 'sci-5',
+        url: 'https://images.unsplash.com/photo-1518152006812-edab29b069ac?q=80&w=800&auto=format&fit=crop',
+        caption: 'Laboratory Preparation Room & Chemical Safety Storage',
+        isMain: false
+      }
+    ]
+  },
+  {
+    id: '4',
+    title: 'Well-Stocked Library & ICT Lab',
+    category: 'Library & ICT',
+    subtitle: 'Comprehensive Learning Resource Center & High-Speed Digital Computer Laboratory',
+    images: [
+      {
+        id: 'lib-1',
+        url: 'https://images.unsplash.com/photo-1521587760476-6c12a4b040da?q=80&w=1200&auto=format&fit=crop',
+        caption: 'Main Library Reading Hall & Reference Book Repositories',
+        isMain: true
+      },
+      {
+        id: 'lib-2',
+        url: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=800&auto=format&fit=crop',
+        caption: 'High-Speed Computer & ICT Research Lab',
+        isMain: false
+      },
+      {
+        id: 'lib-3',
+        url: 'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?q=80&w=800&auto=format&fit=crop',
+        caption: 'Comprehensive National Curriculum & Reference Stacks',
+        isMain: false
+      },
+      {
+        id: 'lib-4',
+        url: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?q=80&w=800&auto=format&fit=crop',
+        caption: 'Quiet Revision & Study Carrels Wing',
+        isMain: false
+      },
+      {
+        id: 'lib-5',
+        url: 'https://images.unsplash.com/photo-1562774053-701939374585?q=80&w=800&auto=format&fit=crop',
+        caption: 'Digital E-Catalog & Student Consultation Desks',
+        isMain: false
+      }
+    ]
+  },
+  {
+    id: '5',
+    title: 'Sports & Co-Curriculars',
+    category: 'Athletics & Clubs',
+    subtitle: 'Standard Grass Sports Pitch, Multi-Sport Hardcourts & Athletics Facilities',
+    images: [
+      {
+        id: 'spt-1',
+        url: 'https://images.unsplash.com/photo-1530549387789-4c1017266635?q=80&w=1200&auto=format&fit=crop',
+        caption: 'Standard Football Grass Pitch & Athletics Grounds',
+        isMain: true
+      },
+      {
+        id: 'spt-2',
+        url: 'https://images.unsplash.com/photo-1546519638-68e109498ffc?q=80&w=800&auto=format&fit=crop',
+        caption: 'Outdoor Basketball & Netball Hardcourts',
+        isMain: false
+      },
+      {
+        id: 'spt-3',
+        url: 'https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?q=80&w=800&auto=format&fit=crop',
+        caption: 'School Volleyball Court & Training Sessions',
+        isMain: false
+      },
+      {
+        id: 'spt-4',
+        url: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?q=80&w=800&auto=format&fit=crop',
+        caption: 'Inter-House Athletics & Sprint Running Track',
+        isMain: false
+      },
+      {
+        id: 'spt-5',
+        url: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=800&auto=format&fit=crop',
+        caption: 'Music, Dance & Drama (MDD) Auditorium Stage',
+        isMain: false
+      }
+    ]
+  },
+  {
+    id: '6',
+    title: 'Holistic Boarding & Leadership',
+    category: 'Boarding & Community',
+    subtitle: 'Secure, Organized Residential Boarding Houses, Dining Hall & Leadership Chambers',
+    images: [
+      {
+        id: 'brd-1',
+        url: 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?q=80&w=1200&auto=format&fit=crop',
+        caption: 'Organized & Clean Student Dormitory Residential Wing',
+        isMain: true
+      },
+      {
+        id: 'brd-2',
+        url: 'https://images.unsplash.com/photo-1567521464027-f127ff144326?q=80&w=800&auto=format&fit=crop',
+        caption: 'Spacious School Dining Hall for Balanced Meals',
+        isMain: false
+      },
+      {
+        id: 'brd-3',
+        url: 'https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?q=80&w=800&auto=format&fit=crop',
+        caption: 'Campus Courtyard, Gardens & Quiet Quadrangle',
+        isMain: false
+      },
+      {
+        id: 'brd-4',
+        url: 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=800&auto=format&fit=crop',
+        caption: 'Student Executive Council & Prefects Chamber',
+        isMain: false
+      }
+    ]
   }
 ];
 

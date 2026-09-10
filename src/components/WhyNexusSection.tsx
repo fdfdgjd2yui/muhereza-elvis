@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
-import { WHY_NEXUS_FEATURES } from '../data/schoolData';
-import { Award, Monitor, FlaskConical, BookOpen, Trophy, HeartHandshake, CheckCircle2, X, ArrowRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { WHY_NEXUS_FEATURES, INITIAL_FACILITY_ITEMS } from '../data/schoolData';
+import { FacilityItem } from '../types';
+import { subscribeToFacilities } from '../lib/firebase';
+import { FacilityDetailModal } from './FacilityDetailModal';
+import { Award, Monitor, FlaskConical, BookOpen, Trophy, HeartHandshake, CheckCircle2 } from 'lucide-react';
 
 const iconMap: Record<string, React.ReactNode> = {
   Award: <Award className="w-5 h-5 text-sky-400" />,
@@ -11,43 +14,53 @@ const iconMap: Record<string, React.ReactNode> = {
   HeartHandshake: <HeartHandshake className="w-5 h-5 text-teal-300" />
 };
 
-const FEATURE_DETAILS: Record<string, { specs: string[]; quote: string; image: string }> = {
-  '1': {
-    specs: ['Continuous UNEB Assessment', 'Saturday Joint Mock Clinics', 'Personalized Student Target Sheets'],
-    quote: 'Targeted continuous assessment to prepare every candidate for UNEB UCE and UACE distinction results.',
-    image: 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?q=80&w=1200&auto=format&fit=crop'
-  },
-  '2': {
-    specs: ['Spacious Well-Ventilated Rooms', 'Digital Projectors & Whiteboards', 'Comfortable Single Desks'],
-    quote: 'Conducive learning environment tailored for focused study and student participation.',
-    image: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?q=80&w=1200&auto=format&fit=crop'
-  },
-  '3': {
-    specs: ['Fully Stocked Chemistry Reagents', 'Physics Mechanics & Optics Kits', 'Biology Microscope & Specimen Station'],
-    quote: 'Practical lab work empowering students to master UNEB practical examinations with confidence.',
-    image: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?q=80&w=1200&auto=format&fit=crop'
-  },
-  '4': {
-    specs: ['Comprehensive Textbooks Repository', 'UNEB Past Papers Collection (2000-2025)', 'High-Speed Computer & ICT Center'],
-    quote: 'Rich learning resources to support independent research and revision for both O-Level & A-Level.',
-    image: 'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?q=80&w=1200&auto=format&fit=crop'
-  },
-  '5': {
-    specs: ['Standard Football Grass Pitch', 'Basketball & Netball Courts', 'Inter-House Sports Competitions'],
-    quote: 'Fostering teamwork, physical wellness, and talent development through sports.',
-    image: 'https://images.unsplash.com/photo-1530549387789-4c1017266635?q=80&w=1200&auto=format&fit=crop'
-  },
-  '6': {
-    specs: ['Scripture Union & Chaplaincy', 'Student Executive Council', 'Debate & Wildlife Clubs'],
-    quote: 'Cultivating spiritual growth, moral integrity, public speaking, and responsible student leadership.',
-    image: 'https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?q=80&w=1200&auto=format&fit=crop'
-  }
-};
-
 export const WhyNexusSection: React.FC = () => {
-  const [selectedFeature, setSelectedFeature] = useState<typeof WHY_NEXUS_FEATURES[0] | null>(null);
+  const [facilities, setFacilities] = useState<FacilityItem[]>(() => {
+    const saved = localStorage.getItem('nexus_facility_items');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {
+        console.warn('Failed to parse saved facilities', e);
+      }
+    }
+    return INITIAL_FACILITY_ITEMS;
+  });
 
-  const detail = selectedFeature ? FEATURE_DETAILS[selectedFeature.id] : null;
+  const [selectedFacility, setSelectedFacility] = useState<FacilityItem | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToFacilities((data) => {
+      if (data && data.length > 0) {
+        setFacilities(data);
+      }
+    });
+
+    const handleUpdateEvent = () => {
+      const saved = localStorage.getItem('nexus_facility_items');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) setFacilities(parsed);
+        } catch (e) {}
+      }
+    };
+
+    window.addEventListener('nexus_facilities_updated', handleUpdateEvent);
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener('nexus_facilities_updated', handleUpdateEvent);
+    };
+  }, []);
+
+  const handleOpenFacility = (featureId: string) => {
+    const found = facilities.find((f) => f.id === featureId) || INITIAL_FACILITY_ITEMS.find((f) => f.id === featureId);
+    if (found) {
+      setSelectedFacility(found);
+    }
+  };
 
   return (
     <section id="why-nexus" className="py-24 bg-slate-50 relative overflow-hidden text-slate-900 border-t border-slate-200">
@@ -114,7 +127,7 @@ export const WhyNexusSection: React.FC = () => {
               <button
                 key={feature.id}
                 type="button"
-                onClick={() => setSelectedFeature(feature)}
+                onClick={() => handleOpenFacility(feature.id)}
                 className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-md flex flex-col justify-between group text-left cursor-pointer transition-all"
               >
                 <div>
@@ -146,63 +159,14 @@ export const WhyNexusSection: React.FC = () => {
 
       </div>
 
-      {/* Interactive Facility Feature Modal */}
-      {selectedFeature && detail && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white w-full max-w-lg rounded-3xl p-6 border border-slate-200 shadow-2xl relative overflow-hidden text-slate-900">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-xl bg-sky-50 border border-sky-200">
-                  {iconMap[selectedFeature.icon]}
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-[#0B1A30]">{selectedFeature.title}</h3>
-                  <p className="text-[11px] text-sky-800 font-mono">Nexus Campus Facilities</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedFeature(null)}
-                className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div className="p-4 rounded-2xl bg-sky-50 border border-sky-200">
-                <p className="text-xs text-sky-900 italic font-medium">
-                  "{detail.quote}"
-                </p>
-              </div>
-
-              <p className="text-xs text-slate-600 leading-relaxed">
-                {selectedFeature.description}
-              </p>
-
-              <div className="space-y-2 pt-2 border-t border-slate-100">
-                <p className="text-[11px] font-bold text-[#0B1A30] uppercase tracking-wider">Facility Highlights</p>
-                {detail.specs.map((spec, idx) => (
-                  <div key={idx} className="flex items-center gap-2 text-xs text-slate-700">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-sky-600 shrink-0" />
-                    <span>{spec}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="mt-6 pt-3 border-t border-slate-100 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setSelectedFeature(null)}
-                className="px-5 py-2 rounded-xl bg-[#0B1A30] hover:bg-slate-800 text-white font-bold text-xs"
-              >
-                Close Facility Overview
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Dedicated Visual Facility Detail Modal */}
+      <FacilityDetailModal
+        isOpen={!!selectedFacility}
+        facility={selectedFacility}
+        allFacilities={facilities}
+        onClose={() => setSelectedFacility(null)}
+        onSelectFacility={(fac) => setSelectedFacility(fac)}
+      />
 
     </section>
   );
