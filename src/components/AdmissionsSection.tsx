@@ -1,6 +1,7 @@
 import React from 'react';
 import { ADMISSION_STEPS } from '../data/schoolData';
 import { FileEdit, UserCheck, MailCheck, Rocket, Send, ArrowRight } from 'lucide-react';
+import { AdmissionCharacters } from './AdmissionCharacters';
 
 interface AdmissionsSectionProps {
   onOpenApply: () => void;
@@ -29,6 +30,20 @@ export const AdmissionsSection: React.FC<AdmissionsSectionProps> = ({ onOpenAppl
           <p className="text-slate-600 text-base sm:text-lg">
             Four simple steps to secure your child’s enrollment at Nexus Academy.
           </p>
+        </div>
+
+        {/* Interactive Character Teaser Banner: Overlays section when scrolling */}
+        <div className="sticky top-20 z-20 mb-12 max-w-3xl mx-auto p-4 sm:p-5 rounded-3xl bg-slate-50/95 backdrop-blur-md border border-slate-200 shadow-md flex flex-col md:flex-row items-center justify-between gap-4 transition-all">
+          <div className="flex-1 w-full">
+            <AdmissionCharacters state="idle" variant="horizontal" />
+          </div>
+          <button
+            onClick={onOpenApply}
+            className="w-full md:w-auto px-5 py-2.5 rounded-xl bg-[#0B1A30] text-white text-xs font-bold hover:bg-slate-800 transition-all shrink-0 shadow-sm flex items-center justify-center gap-1.5"
+          >
+            <span>Open Application</span>
+            <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
+          </button>
         </div>
 
         {/* 4 Steps Grid */}

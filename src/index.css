@@ -39,3 +39,53 @@ body {
   animation-play-state: paused;
 }
 
+/* 2D Admission Character Interactive Animations */
+@keyframes character-shake {
+  0% { transform: translateY(-10px) scaleY(1.22) scaleX(0.96) rotate(0deg); }
+  20% { transform: translateY(-12px) scaleY(1.26) scaleX(0.94) rotate(-7deg); }
+  40% { transform: translateY(-10px) scaleY(1.2) scaleX(0.97) rotate(7deg); }
+  60% { transform: translateY(-12px) scaleY(1.25) scaleX(0.95) rotate(-5deg); }
+  80% { transform: translateY(-10px) scaleY(1.21) scaleX(0.97) rotate(4deg); }
+  100% { transform: translateY(-10px) scaleY(1.22) scaleX(0.96) rotate(0deg); }
+}
+
+@keyframes hurt-violent-shake {
+  0% { transform: translateX(0) translateY(0) rotate(0deg); }
+  10% { transform: translateX(-12px) translateY(-5px) rotate(-9deg); }
+  20% { transform: translateX(12px) translateY(4px) rotate(9deg); }
+  30% { transform: translateX(-10px) translateY(3px) rotate(-8deg); }
+  40% { transform: translateX(10px) translateY(-4px) rotate(8deg); }
+  50% { transform: translateX(-8px) translateY(2px) rotate(-6deg); }
+  60% { transform: translateX(8px) translateY(-2px) rotate(6deg); }
+  70% { transform: translateX(-6px) translateY(3px) rotate(-4deg); }
+  80% { transform: translateX(6px) translateY(-2px) rotate(4deg); }
+  90% { transform: translateX(-3px) translateY(1px) rotate(-2deg); }
+  100% { transform: translateX(0) translateY(0) rotate(0deg); }
+}
+
+.animate-hurt-shake {
+  animation: hurt-violent-shake 0.5s ease-in-out infinite;
+}
+
+@keyframes character-bounce-idle {
+  0%, 100% { transform: translateY(0) scaleY(1); }
+  50% { transform: translateY(-4px) scaleY(1.03); }
+}
+
+.animate-character-shake {
+  animation: character-shake 0.45s ease-in-out;
+}
+
+.animate-character-idle {
+  animation: character-bounce-idle 3.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
