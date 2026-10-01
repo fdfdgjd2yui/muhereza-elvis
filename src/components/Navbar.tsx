@@ -17,7 +17,18 @@ export const Navbar: React.FC<NavbarProps> = ({
   scrollToSection
 }) => {
   const [isPortalDropdownOpen, setIsPortalDropdownOpen] = useState(false);
+  const [isScrolledPastHero, setIsScrolledPastHero] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Monitor scroll on home page to show floating navbar after leaving hero
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolledPastHero(window.scrollY > 400);
+    };
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -30,8 +41,20 @@ export const Navbar: React.FC<NavbarProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const isHome = activeTab === 'home';
+
   return (
-    <header className="sticky top-0 z-40 bg-white border-b border-slate-200 text-[#0B1A30] shadow-sm">
+    <header
+      className={`border-b border-slate-200 text-[#0B1A30] transition-all duration-300 ${
+        isHome
+          ? `fixed top-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md shadow-md ${
+              isScrolledPastHero
+                ? 'translate-y-0 opacity-100 pointer-events-auto'
+                : '-translate-y-full opacity-0 pointer-events-none'
+            }`
+          : 'sticky top-0 z-40 bg-white shadow-sm translate-y-0 opacity-100 pointer-events-auto'
+      }`}
+    >
       <div className="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-4">
         {/* Brand Header */}
         <button

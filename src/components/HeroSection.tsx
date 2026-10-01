@@ -1,180 +1,115 @@
-import React, { useState, useEffect } from 'react';
-import { HERO_SLIDES } from '../data/schoolData';
-import { Compass, Send, Award, GraduationCap } from 'lucide-react';
+import React from 'react';
 
 interface HeroSectionProps {
   onOpenApply: () => void;
   scrollToSection: (id: string) => void;
-  onSelectResultsPortal: () => void;
+  onSelectResultsPortal?: () => void;
 }
 
 export const HeroSection: React.FC<HeroSectionProps> = ({
   onOpenApply,
   scrollToSection,
-  onSelectResultsPortal
 }) => {
-  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
-
-  // 5-second automatic image loop with Ken Burns zoom
-  useEffect(() => {
-    if (isPaused) return;
-    const interval = setInterval(() => {
-      setCurrentSlideIndex((prevIndex) => (prevIndex + 1) % HERO_SLIDES.length);
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [isPaused]);
-
-  const currentSlide = HERO_SLIDES[currentSlideIndex];
-
   return (
-    <section className="relative w-full min-h-screen flex items-center justify-center pt-20 pb-16 overflow-hidden bg-white text-slate-900">
-      
-      {/* Clean Light Background Gradients */}
-      <div className="absolute inset-0 z-0 overflow-hidden bg-slate-50">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-sky-100/70 via-white to-white" />
-      </div>
+    <section className="relative w-full min-h-screen flex flex-col justify-between overflow-hidden bg-[#001f3f] text-foreground">
+      {/* Video Background: Fullscreen <video> element with autoPlay, loop, muted, playsInline */}
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260314_131748_f2ca2a28-fed7-44c8-b9a9-bd9acdd5ec31.mp4"
+        className="absolute inset-0 w-full h-full object-cover z-0"
+      />
 
-      {/* Subtle Glowing Light Orbs in Background */}
-      <div className="absolute -top-24 -left-24 w-96 h-96 bg-sky-200/50 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute top-1/2 -right-24 w-[500px] h-[500px] bg-blue-100/40 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute -bottom-24 left-1/3 w-80 h-80 bg-cyan-100/40 rounded-full blur-[100px] pointer-events-none" />
-
-      {/* Main Hero Grid Content */}
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-          
-          {/* Left Column: Heading & Call To Action */}
-          <div className="lg:col-span-7 space-y-6 text-left">
-            
-            {/* School Motto Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-sky-100 border border-sky-300 shadow-sm animate-fade-in">
-              <span className="w-2 h-2 bg-sky-600 rounded-full animate-ping" />
-              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-sky-900">
-                Nexus Academy — Motto: Excellence & Integrity
-              </span>
-            </div>
-
-            {/* Main Headline */}
-            <div className="space-y-3">
-              <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-[#0B1A30] leading-[1.05] heading-font">
-                Nexus Academy <br />
-                <span className="bg-gradient-to-r from-blue-700 via-sky-600 to-cyan-600 bg-clip-text text-transparent">
-                  Building Tomorrow's Leaders
-                </span>
-              </h1>
-              <p className="text-lg sm:text-2xl text-slate-700 font-medium max-w-2xl leading-relaxed">
-                "Excellence and Integrity in Secondary Education"
-              </p>
-            </div>
-
-            <p className="text-sm sm:text-base text-slate-600 max-w-xl font-normal leading-relaxed">
-              Fostering academic rigor, STEM exploration, and holistic leadership excellence in an environment designed for global impact.
-            </p>
-
-            {/* Action Buttons */}
-            <div className="flex flex-wrap items-center gap-4 pt-2">
-              <button
-                onClick={onOpenApply}
-                className="group relative inline-flex items-center justify-center gap-3 px-8 py-4 rounded-full bg-[#0B1A30] text-white font-extrabold text-base shadow-lg hover:bg-slate-800 hover:scale-105 active:scale-95 transition-all duration-300"
-              >
-                <Send className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                <span>Apply Now</span>
-              </button>
-
-              <button
-                onClick={() => scrollToSection('programs')}
-                className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-full bg-white border border-slate-300 text-[#0B1A30] font-bold text-base shadow-sm hover:bg-slate-100 transition-all duration-300"
-              >
-                <Compass className="w-5 h-5 text-sky-600" />
-                <span>Explore Curriculum</span>
-              </button>
-
-              <button
-                onClick={onSelectResultsPortal}
-                className="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-full bg-sky-50 hover:bg-sky-100 border border-sky-300 text-sky-900 font-semibold text-sm transition-all"
-              >
-                <span>Check UNEB Results</span>
-              </button>
-            </div>
-
-            {/* Slide Automatic Loop Progress Dots */}
-            <div className="flex items-center gap-2 pt-4">
-              {HERO_SLIDES.map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setCurrentSlideIndex(idx)}
-                  aria-label={`Go to slide ${idx + 1}`}
-                  className={`h-2 rounded-full transition-all duration-500 ${
-                    idx === currentSlideIndex
-                      ? 'w-10 bg-[#0B1A30]'
-                      : 'w-2 bg-slate-300 hover:bg-slate-400'
-                  }`}
-                />
-              ))}
-            </div>
-
-          </div>
-
-          {/* Right Column: Hero Cards */}
-          <div className="lg:col-span-5 relative flex justify-center items-center">
-            
-            {/* Center Container with Light Card Styling */}
-            <div className="relative w-full max-w-md aspect-[4/5] rounded-3xl overflow-hidden p-6 border border-slate-200 shadow-xl flex flex-col justify-between bg-white text-slate-900">
-              <div className="flex justify-between items-center">
-                <span className="px-3 py-1 rounded-full bg-sky-100 border border-sky-300 text-[10px] font-bold text-sky-900 uppercase tracking-widest">
-                  Nexus Academy
-                </span>
-                <GraduationCap className="w-8 h-8 text-sky-600" />
-              </div>
-
-              <div className="my-auto text-center space-y-4 py-8">
-                <div className="w-20 h-20 rounded-2xl bg-sky-50 border border-sky-200 flex items-center justify-center mx-auto text-sky-700">
-                  <GraduationCap className="w-10 h-10" />
-                </div>
-                <h3 className="text-2xl font-bold text-[#0B1A30] heading-font">Nexus Excellence</h3>
-                <p className="text-xs text-slate-600 max-w-xs mx-auto leading-relaxed">
-                  Fostering academic rigor, STEM exploration, and character leadership.
-                </p>
-              </div>
-
-              <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50">
-                <p className="text-xs font-semibold text-sky-800 uppercase tracking-wider">Nexus Scholar Focus</p>
-                <p className="text-sm font-bold text-[#0B1A30] mt-0.5">Empowered for University & Beyond</p>
-              </div>
-            </div>
-
-            {/* Floating Metric Card 1 (Top Left) */}
-            <div className="absolute -top-4 -left-6 sm:-left-10 p-4 rounded-2xl border border-slate-200 shadow-lg max-w-[170px] bg-white text-slate-900">
-              <div className="flex items-center gap-2 mb-1">
-                <Award className="w-5 h-5 text-sky-600" />
-                <span className="text-xl font-extrabold text-[#0B1A30]">90%</span>
-              </div>
-              <p className="text-[11px] font-semibold text-slate-700 leading-tight">
-                Passing Excellence
-              </p>
-              <p className="text-[9px] text-sky-700 font-medium mt-0.5">National & International</p>
-            </div>
-
-            {/* Floating Metric Card 2 (Right Middle) */}
-            <div className="absolute top-1/3 -right-6 sm:-right-10 p-4 rounded-2xl border border-slate-200 shadow-lg max-w-[170px] bg-white text-slate-900">
-              <div className="flex items-center gap-2 mb-1">
-                <GraduationCap className="w-5 h-5 text-sky-600" />
-                <span className="text-xl font-extrabold text-[#0B1A30]">17+</span>
-              </div>
-              <p className="text-[11px] font-semibold text-slate-700 leading-tight">
-                Years Excellence
-              </p>
-              <p className="text-[9px] text-sky-700 font-medium mt-0.5">Established 2009</p>
-            </div>
-
-          </div>
-
+      {/* Navigation Bar: relative z-10, flex row, justify-between, px-8 py-6, max-w-7xl mx-auto */}
+      <header className="relative z-10 flex flex-row items-center justify-between px-8 py-6 max-w-7xl mx-auto w-full">
+        {/* Logo: "Velorah®" (® as <sup className="text-xs">), text-3xl tracking-tight, Instrument Serif font, text-foreground */}
+        <div
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          style={{ fontFamily: "'Instrument Serif', serif" }}
+          className="text-3xl tracking-tight text-foreground cursor-pointer select-none"
+        >
+          Velorah<sup className="text-xs">®</sup>
         </div>
+
+        {/* Nav links (hidden on mobile, md:flex): Home (active, text-foreground), Studio, About, Journal, Reach Us — all text-sm text-muted-foreground with hover:text-foreground transition-colors */}
+        <nav className="hidden md:flex items-center gap-8">
+          <button
+            type="button"
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="text-sm text-foreground transition-colors cursor-pointer"
+          >
+            Home
+          </button>
+          <button
+            type="button"
+            onClick={() => scrollToSection('programs')}
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+          >
+            Studio
+          </button>
+          <button
+            type="button"
+            onClick={() => scrollToSection('why-nexus')}
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+          >
+            About
+          </button>
+          <button
+            type="button"
+            onClick={() => scrollToSection('news')}
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+          >
+            Journal
+          </button>
+          <button
+            type="button"
+            onClick={() => scrollToSection('contact')}
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+          >
+            Reach Us
+          </button>
+        </nav>
+
+        {/* CTA button: "Begin Journey", liquid-glass rounded-full px-6 py-2.5 text-sm text-foreground, hover:scale-[1.03] */}
+        <button
+          type="button"
+          onClick={onOpenApply}
+          className="liquid-glass rounded-full px-6 py-2.5 text-sm text-foreground hover:scale-[1.03] transition-transform cursor-pointer"
+        >
+          Begin Journey
+        </button>
+      </header>
+
+      {/* Hero Section: relative z-10, flex column, centered, text-center, px-6 pt-32 pb-40 py-[90px] */}
+      <div className="relative z-10 flex flex-col items-center justify-center text-center px-6 pt-32 pb-40 py-[90px] my-auto max-w-7xl mx-auto w-full">
+        {/* H1: "Where dreams rise through the silence." — text-5xl sm:text-7xl md:text-8xl, leading-[0.95], tracking-[-2.46px], max-w-7xl, font-normal, Instrument Serif. The words "dreams" and "through the silence." wrapped in <em className="not-italic text-muted-foreground"> for color contrast */}
+        <h1
+          style={{ fontFamily: "'Instrument Serif', serif" }}
+          className="text-5xl sm:text-7xl md:text-8xl leading-[0.95] tracking-[-2.46px] max-w-7xl font-normal text-foreground animate-fade-rise"
+        >
+          Where <em className="not-italic text-muted-foreground">dreams</em> rise{' '}
+          <em className="not-italic text-muted-foreground">through the silence.</em>
+        </h1>
+
+        {/* Subtext: text-muted-foreground text-base sm:text-lg max-w-2xl mt-8 leading-relaxed — "We're designing tools for deep thinkers, bold creators, and quiet rebels. Amid the chaos, we build digital spaces for sharp focus and inspired work." */}
+        <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mt-8 leading-relaxed animate-fade-rise-delay">
+          We're designing tools for deep thinkers, bold creators, and quiet rebels. Amid the chaos, we build digital spaces for sharp focus and inspired work.
+        </p>
+
+        {/* CTA button: "Begin Journey", liquid-glass rounded-full px-14 py-5 text-base text-foreground mt-12, hover:scale-[1.03] cursor-pointer */}
+        <button
+          type="button"
+          onClick={onOpenApply}
+          className="liquid-glass rounded-full px-14 py-5 text-base text-foreground mt-12 hover:scale-[1.03] cursor-pointer transition-transform animate-fade-rise-delay-2"
+        >
+          Begin Journey
+        </button>
       </div>
 
+      {/* Subtle bottom spacing */}
+      <div className="relative z-10 h-6 pointer-events-none" />
     </section>
   );
 };
-
